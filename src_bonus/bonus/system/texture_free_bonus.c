@@ -64,13 +64,12 @@ static void	free_endgame(t_cub *cub)
 	if (cub->win_ui.id && cub->mlx)
 		mlx_destroy_image(cub->mlx, cub->win_ui.id);
 	cub->win_ui.id = NULL;
-	i = -1;
-	while (++i < GAMEOVER_FRAMES)
-	{
-		if (cub->gameover_ui[i].id && cub->mlx)
-			mlx_destroy_image(cub->mlx, cub->gameover_ui[i].id);
-		cub->gameover_ui[i].id = NULL;
-	}
+	if (cub->gameover_retry.id && cub->mlx)
+		mlx_destroy_image(cub->mlx, cub->gameover_retry.id);
+	cub->gameover_retry.id = NULL;
+	if (cub->gameover_quit.id && cub->mlx)
+		mlx_destroy_image(cub->mlx, cub->gameover_quit.id);
+	cub->gameover_quit.id = NULL;
 }
 
 /**

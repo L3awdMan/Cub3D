@@ -16,6 +16,29 @@ void	put_px(t_img *img, int x, int y, unsigned int color)
 	*(unsigned int *)px = color;
 }
 
+static int	render_ui_frame(t_cub *cub)
+{
+	if (cub->game_state == GS_CUTSCENE)
+	{
+		draw_cutscene(cub);
+		mlx_put_image_to_window(cub->mlx, cub->win, cub->img.id, 0, 0);
+		return (1);
+	}
+	if (cub->game_state == GS_MISSION)
+	{
+		draw_mission_ui(cub);
+		mlx_put_image_to_window(cub->mlx, cub->win, cub->img.id, 0, 0);
+		return (1);
+	}
+	if (cub->game_state >= GS_INTRO)
+	{
+		draw_menu(cub);
+		mlx_put_image_to_window(cub->mlx, cub->win, cub->img.id, 0, 0);
+		return (1);
+	}
+	return (0);
+}
+
 /**
  * @brief Renders a complete frame: walls → sprites → minimap → crosshair,
  * then the single mlx_put_image_to_window blit. The crosshair draws last so
@@ -23,18 +46,8 @@ void	put_px(t_img *img, int x, int y, unsigned int color)
  */
 static void	render_frame(t_cub *cub)
 {
-	if (cub->game_state == GS_CUTSCENE)
-	{
-		draw_cutscene(cub);
-		mlx_put_image_to_window(cub->mlx, cub->win, cub->img.id, 0, 0);
+	if (render_ui_frame(cub))
 		return ;
-	}
-	if (cub->game_state >= GS_INTRO)
-	{
-		draw_menu(cub);
-		mlx_put_image_to_window(cub->mlx, cub->win, cub->img.id, 0, 0);
-		return ;
-	}
 	cast_all_rays(cub);
 	draw_sprites(cub);
 	draw_projectiles(cub);
@@ -87,8 +100,11 @@ int	loop_hook(void *param)
 	if (cub->game_state == GS_CUTSCENE)
 		update_cutscene(cub);
 	else if (cub->game_state == GS_PLAYING)
+	{
 		update_world(cub);
-	else if (cub->game_state >= GS_INTRO)
+		update_mission_ui(cub);
+	}
+	else if (cub->game_state >= GS_INTRO && cub->game_state != GS_MISSION)
 		update_menu(cub);
 	if (cub->game_state <= GS_WIN)
 		update_endgame(cub);

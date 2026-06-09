@@ -243,16 +243,23 @@
 # define GS_SETTINGS	6
 # define GS_DIFFICULTY	7
 # define GS_FADEOUT		8
+# define GS_PAUSE		9
+# define GS_MISSION		10
 # define MENU_OPTS		3
+# define PAUSE_OPTS		3
+# define MISSION_COUNT	3
+# define MISSION_DELAY_MS	1000
 # define FADE_FRAMES	6
 # define FADE_ANIM_MS	110
 # define DIFF_EASY		0
 # define DIFF_SKILLED	1
 # define DIFF_GIGACHAD	2
 # define UI_DIR			"./textures/blake_stone_xpm/ui_screens/"
+# define MISSION_DIR	"./textures/blake_stone_xpm/mission_ui/"
 # define DEAD_FRAMES	6
 # define DEAD_ANIM_MS	120
-# define GAMEOVER_FRAMES	6
+# define GAMEOVER_RETRY	0
+# define GAMEOVER_QUIT	1
 # define OPAQUE_KEY		0x01000000u
 # define ENDGAME_DIR	"./textures/blake_stone_xpm/sprites/gameover_win_ui/"
 /* SECTION 4 (bonus) — full-screen cutscenes. PNG originals are converted to
@@ -623,18 +630,26 @@ typedef struct s_cub
 	int			spawn_count;
 	t_img		dead_ui[DEAD_FRAMES];
 	t_img		win_ui;
-	t_img		gameover_ui[GAMEOVER_FRAMES];
+	t_img		gameover_retry;
+	t_img		gameover_quit;
+	int			gameover_sel;
 	/* SECTION 4 (include/cub3d_bonus.h): front-end menu. menu_sel is the main-
 	 * menu cursor (0..2); difficulty (DIFF_*) is the chosen level. ui_* are the
 	 * lazily-loaded full-screen menu screens; ui_fade is the clear->black
 	 * Start-Mission blur sequence. */
 	int			menu_sel;
+	int			pause_sel;
+	int			settings_return_state;
 	int			difficulty;
 	t_img		ui_intro;
 	t_img		ui_menu[MENU_OPTS];
 	t_img		ui_settings;
+	t_img		ui_pause[PAUSE_OPTS];
 	t_img		ui_diff[3];
 	t_img		ui_fade[FADE_FRAMES];
+	t_img		ui_mission[MISSION_COUNT];
+	long		mission_due_ms;
+	int			mission_pending;
 	t_cutscene	cutscene;
 	/* SECTION 4 (include/cub3d_bonus.h): world reward pickups. sprite_cap is
 	 * the allocated length of the sprites array (> sprite_count) so spawn_reward
@@ -840,6 +855,7 @@ void			load_endgame_ui(t_cub *cub);
 
 void			respawn(t_cub *cub);
 void			enter_state(t_cub *cub, int gs);
+void			endgame_input(t_cub *cub, int key);
 void			update_endgame(t_cub *cub);
 void			draw_endgame(t_cub *cub);
 
@@ -859,6 +875,15 @@ void			update_menu(t_cub *cub);
 int				player_dmg(t_cub *cub);
 void			menu_input(t_cub *cub, int key);
 
+/* ────────────── bonus/mission_bonus.c ──────────────── */
+
+void			load_mission_ui(t_cub *cub);
+void			free_mission_ui(t_cub *cub);
+void			schedule_mission_ui(t_cub *cub);
+void			update_mission_ui(t_cub *cub);
+void			draw_mission_ui(t_cub *cub);
+void			mission_input(t_cub *cub, int key);
+
 /* ────────────── bonus/cutscene_bonus.c ──────────────── */
 
 char			*cutscene_path(int id, int frame);
@@ -872,6 +897,7 @@ void			draw_cutscene(t_cub *cub);
 
 void			advance_floor(t_cub *cub);
 void			advance_floor_after_cutscene(t_cub *cub);
+void			restart_game(t_cub *cub);
 
 /* ────────────── bonus/reward_popup_bonus.c ──────────────── */
 

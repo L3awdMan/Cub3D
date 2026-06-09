@@ -1,8 +1,7 @@
 /* SECTION 4 (src_bonus/bonus/endgame_bonus.c): end-game UI — load side.
  * capture_spawn() snapshots the floor's start (player + initial sprites) so
- * respawn() can restore it. load_endgame_ui() lazily loads the 6 blur->clear
- * "YOU ARE DEAD" frames and the "YOU WIN" frame on the first death/win, so
- * the big full-screen XPMs never stall startup. State + draw live in
+ * respawn() can restore it. load_endgame_ui() lazily loads the dead frames,
+ * the win frame and the terminal retry/quit screens. State + draw live in
  * endgame_state_bonus.c. */
 
 #include "cub3d_bonus.h"
@@ -22,28 +21,6 @@ static char	*dead_path(int i)
 	if (!num)
 		return (NULL);
 	mid = ft_strjoin(ENDGAME_DIR "you_are_dead_frame_0", num);
-	free(num);
-	if (!mid)
-		return (NULL);
-	path = ft_strjoin(mid, ".xpm");
-	free(mid);
-	return (path);
-}
-
-/**
- * @brief Builds the malloc'd path ENDGAME_DIR "game_over_<i>.xpm" (i is 1..6,
- * always single-digit). Caller frees.
- */
-static char	*gameover_path(int i)
-{
-	char	*num;
-	char	*mid;
-	char	*path;
-
-	num = ft_itoa(i);
-	if (!num)
-		return (NULL);
-	mid = ft_strjoin(ENDGAME_DIR "game_over_", num);
 	free(num);
 	if (!mid)
 		return (NULL);
@@ -88,8 +65,8 @@ static void	load_ui(t_cub *cub, t_img *f, char *path)
 }
 
 /**
- * @brief Lazily loads the 6 dead frames + the win frame (one-time, on first
- * death or win).
+ * @brief Lazily loads the dead frames, win frame, and terminal game-over
+ * retry/quit screens.
  */
 void	load_endgame_ui(t_cub *cub)
 {
@@ -99,7 +76,8 @@ void	load_endgame_ui(t_cub *cub)
 	while (++i < DEAD_FRAMES)
 		load_ui(cub, &cub->dead_ui[i], dead_path(i));
 	load_ui(cub, &cub->win_ui, ft_strjoin(ENDGAME_DIR "you_win_ui", ".xpm"));
-	i = -1;
-	while (++i < GAMEOVER_FRAMES)
-		load_ui(cub, &cub->gameover_ui[i], gameover_path(i + 1));
+	load_ui(cub, &cub->gameover_retry,
+		ft_strjoin(ENDGAME_DIR "gameover_retry", ".xpm"));
+	load_ui(cub, &cub->gameover_quit,
+		ft_strjoin(ENDGAME_DIR "gameover_quit", ".xpm"));
 }

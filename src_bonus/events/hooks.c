@@ -1,6 +1,27 @@
 #include "cub3d_bonus.h"
 #include "mlx.h"
 
+static int	handle_edge_key(t_cub *cub, int key)
+{
+	if (cub->game_state == GS_MISSION)
+	{
+		mission_input(cub, key);
+		if (key == KEY_ENTER || key == KEY_SPACE)
+			return (1);
+	}
+	else if (cub->game_state >= GS_INTRO && cub->game_state != GS_FADEOUT)
+		menu_input(cub, key);
+	if (cub->game_state == GS_WIN && cub->cutscene.final_done)
+		endgame_input(cub, key);
+	if (cub->game_state == GS_PLAYING && key == KEY_P)
+		cub->game_state = GS_PAUSE;
+	if (cub->game_state == GS_PLAYING && key == KEY_M)
+		cub->show_minimap = !cub->show_minimap;
+	if (cub->game_state == GS_PLAYING && key == KEY_E)
+		toggle_door(cub);
+	return (0);
+}
+
 /**
  * @brief Handles KeyPress: mark key as held in the keys[] state array
  * @return 0 as per MLX hook convention
@@ -16,12 +37,8 @@ int	key_press(int key, void *param)
 	cub = (t_cub *)param;
 	if (key >= 0 && key < 65536 && !cub->keys[key])
 	{
-		if (cub->game_state >= GS_INTRO && cub->game_state != GS_FADEOUT)
-			menu_input(cub, key);
-		if (key == KEY_M)
-			cub->show_minimap = !cub->show_minimap;
-		if (key == KEY_E)
-			toggle_door(cub);
+		if (handle_edge_key(cub, key))
+			return (0);
 	}
 	if (key >= 0 && key < 65536)
 		cub->keys[key] = 1;

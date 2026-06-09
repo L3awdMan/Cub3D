@@ -1,8 +1,7 @@
 /* SECTION 4 (src_bonus/bonus/endgame_state_bonus.c): end-game state machine +
  * overlay draw. update_endgame() flips PLAYING->DEAD when hp hits 0 and reads
- * the confirm key to respawn (dead) or advance_floor (win). draw_endgame()
- * lazily loads the UI then blits the current dead frame (blur->clear) or the
- * win frame full-screen with OPAQUE_KEY so nothing shows through. */
+ * the confirm key to respawn (dead) or advance_floor (win). Terminal game-over
+ * uses retry/quit selection screens instead of the old 6-frame loop. */
 
 #include "cub3d_bonus.h"
 
@@ -41,6 +40,8 @@ void	enter_state(t_cub *cub, int gs)
 {
 	cub->game_state = gs;
 	cub->state_ms = now_ms();
+	if (gs == GS_WIN && cub->cutscene.final_done)
+		cub->gameover_sel = GAMEOVER_RETRY;
 }
 
 /**
@@ -101,7 +102,12 @@ void	draw_endgame(t_cub *cub)
 		f = &cub->dead_ui[idx];
 	}
 	else if (cub->cutscene.final_done)
-		f = &cub->gameover_ui[idx % GAMEOVER_FRAMES];
+	{
+		if (cub->gameover_sel == GAMEOVER_QUIT)
+			f = &cub->gameover_quit;
+		else
+			f = &cub->gameover_retry;
+	}
 	else
 		f = &cub->win_ui;
 	if (f->id)

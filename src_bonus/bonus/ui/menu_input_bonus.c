@@ -1,22 +1,10 @@
-/* SECTION 4 (src_bonus/bonus/menu_input_bonus.c): front-end input + difficulty.
+/* SECTION 4 (src_bonus/bonus/menu_input_bonus.c): front-end input dispatch.
  * menu_input() is called on each edge-detected key press while a menu state is
  * active: Space/Enter advance, Up/Down (or W/S) move a cursor, Backspace steps
- * back. player_dmg() scales enemy damage by the chosen difficulty so harder
- * levels drain hp faster. ESC (always-quit) stays handled in key_press. */
+ * back. ESC (always-quit) stays handled in key_press. Difficulty damage scaling
+ * lives in difficulty_bonus.c. */
 
 #include "cub3d_bonus.h"
-
-static const double	g_diff_mult[3] = {1.0, 1.5, 2.0};
-
-/**
- * @brief Enemy damage scaled by the selected difficulty (Easy 1x, Skilled 1.5x,
- * Gigachad 2x) so harder levels lose hp faster. Used at both player-damage
- * sites (enemy melee + projectile impact).
- */
-int	player_dmg(t_cub *cub)
-{
-	return ((int)(ATTACK_DMG * g_diff_mult[cub->difficulty]));
-}
 
 /**
  * @brief Moves a wrapping cursor in [0, n) by the pressed key: Up/W back,
@@ -39,9 +27,49 @@ static void	menu_select(t_cub *cub)
 	if (cub->menu_sel == 0)
 		enter_state(cub, GS_FADEOUT);
 	else if (cub->menu_sel == 1)
+	{
+		cub->settings_return_state = GS_MENU;
 		cub->game_state = GS_SETTINGS;
+	}
 	else
 		cub->game_state = GS_DIFFICULTY;
+}
+
+static void	pause_select(t_cub *cub)
+{
+	if (cub->pause_sel == 0)
+		cub->game_state = GS_PLAYING;
+	else if (cub->pause_sel == 1)
+	{
+		cub->settings_return_state = GS_PAUSE;
+		cub->game_state = GS_SETTINGS;
+	}
+	else
+		close_hook(cub);
+}
+
+/**
+ * @brief Handles key presses on the pause + settings screens. Returns 1 if it
+ * consumed the key (caller stops), 0 otherwise.
+ */
+static int	pause_menu_input(t_cub *cub, int key, int confirm)
+{
+	if (cub->game_state == GS_PAUSE)
+	{
+		menu_nav(key, &cub->pause_sel, PAUSE_OPTS);
+		if (confirm)
+			pause_select(cub);
+		return (1);
+	}
+	if (cub->game_state == GS_SETTINGS && key == KEY_BACKSPACE)
+	{
+		if (cub->settings_return_state == GS_PAUSE)
+			cub->game_state = GS_PAUSE;
+		else
+			cub->game_state = GS_MENU;
+		return (1);
+	}
+	return (0);
 }
 
 /**
@@ -69,6 +97,6 @@ void	menu_input(t_cub *cub, int key)
 		if (confirm || key == KEY_BACKSPACE)
 			cub->game_state = GS_MENU;
 	}
-	else if (cub->game_state == GS_SETTINGS && key == KEY_BACKSPACE)
-		cub->game_state = GS_MENU;
+	else
+		pause_menu_input(cub, key, confirm);
 }

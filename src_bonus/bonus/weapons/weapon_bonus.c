@@ -8,7 +8,7 @@
 #include "cub3d_bonus.h"
 #include "mlx.h"
 
-# define WPN_HUD_DIR	"./textures/blake_stone_xpm/sprites/weapon_hud/"
+#define WPN_HUD_DIR	"./textures/blake_stone_xpm/sprites/weapon_hud/"
 
 static const char *const	g_weapons[WPN_COUNT][WPN_FRAMES] = {
 {

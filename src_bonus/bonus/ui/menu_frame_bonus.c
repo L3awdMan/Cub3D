@@ -20,6 +20,8 @@ t_img	*menu_frame(t_cub *cub)
 		return (&cub->ui_settings);
 	if (cub->game_state == GS_DIFFICULTY)
 		return (&cub->ui_diff[cub->difficulty]);
+	if (cub->game_state == GS_PAUSE)
+		return (&cub->ui_pause[cub->pause_sel]);
 	if (cub->game_state == GS_FADEOUT)
 	{
 		idx = (int)((now_ms() - cub->state_ms) / FADE_ANIM_MS);

@@ -26,6 +26,7 @@
  *   KEY_M - toggle the minimap on and off. */
 # define KEY_E		101
 # define KEY_M		109
+# define KEY_P		112
 /* SECTION 4 (include/keys_bonus.h): KEY_SPACE fires the current weapon
  * (drains the charge bar while held). Left-click fires too (button hook). */
 # define KEY_SPACE	32

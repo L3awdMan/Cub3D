@@ -130,9 +130,14 @@ B_BONUS =		input/mouse_bonus			\
 				ui/menu_bonus			\
 				ui/menu_frame_bonus		\
 				ui/menu_input_bonus		\
+				ui/difficulty_bonus		\
+				ui/mission_bonus		\
+				ui/mission_state_bonus		\
 				ui/endgame_bonus		\
 				ui/endgame_state_bonus		\
+				ui/endgame_input_bonus		\
 				progression/floor_switch_bonus	\
+				progression/restart_bonus	\
 				projectiles/projectile_bonus	\
 				projectiles/projectile_draw_bonus	\
 				system/texture_free_bonus

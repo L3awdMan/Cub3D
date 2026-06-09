@@ -89,6 +89,7 @@ void	cub_destroy(t_cub *cub)
 	free_anim_sprites(cub);
 	free_weapons(cub);
 	free_menu_ui(cub);
+	free_mission_ui(cub);
 	if (cub->img.id && cub->mlx)
 		mlx_destroy_image(cub->mlx, cub->img.id);
 	if (cub->win && cub->mlx)

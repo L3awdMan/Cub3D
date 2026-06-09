@@ -19,7 +19,10 @@ static void	finish_cutscene(t_cub *cub)
 		enter_state(cub, GS_WIN);
 	}
 	else
+	{
 		cub->game_state = GS_PLAYING;
+		schedule_mission_ui(cub);
+	}
 }
 
 void	update_cutscene(t_cub *cub)

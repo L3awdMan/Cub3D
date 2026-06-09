@@ -52,6 +52,9 @@ void	load_menu_ui(t_cub *cub)
 	load_one(cub, &cub->ui_diff[0], "diff_easy.xpm");
 	load_one(cub, &cub->ui_diff[1], "diff_skilled.xpm");
 	load_one(cub, &cub->ui_diff[2], "diff_gigachad.xpm");
+	load_one(cub, &cub->ui_pause[0], "pause_resume.xpm");
+	load_one(cub, &cub->ui_pause[1], "pause_settings.xpm");
+	load_one(cub, &cub->ui_pause[2], "pause_quit.xpm");
 	i = -1;
 	while (++i < FADE_FRAMES)
 	{
@@ -89,6 +92,10 @@ void	free_menu_ui(t_cub *cub)
 		if (cub->ui_diff[i].id && cub->mlx)
 			mlx_destroy_image(cub->mlx, cub->ui_diff[i].id);
 	}
+	i = -1;
+	while (++i < PAUSE_OPTS)
+		if (cub->ui_pause[i].id && cub->mlx)
+			mlx_destroy_image(cub->mlx, cub->ui_pause[i].id);
 	i = -1;
 	while (++i < FADE_FRAMES)
 		if (cub->ui_fade[i].id && cub->mlx)

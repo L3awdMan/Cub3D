@@ -23,7 +23,7 @@ static char	*next_floor_map(int floor)
  * @brief Frees the current floor's parsed heap (grid + row_len, texture paths,
  * doors, sprites) and resets the map flags/counts so parse_file starts clean.
  */
-static void	reset_map_state(t_cub *cub)
+void	reset_map_state(t_cub *cub)
 {
 	free_grid(&cub->map);
 	free_tex_paths(&cub->map);
@@ -50,7 +50,7 @@ static void	reset_map_state(t_cub *cub)
  * projectiles, flash and returns to GS_PLAYING. (floor/lives HUDs reload lazily
  * via loop_hook since free_textures nulled their ids.)
  */
-static void	reinit_floor(t_cub *cub)
+void	reinit_floor(t_cub *cub)
 {
 	int	i;
 
@@ -85,6 +85,7 @@ void	advance_floor_after_cutscene(t_cub *cub)
 	reset_map_state(cub);
 	parse_file(cub, path);
 	reinit_floor(cub);
+	schedule_mission_ui(cub);
 }
 
 /**
