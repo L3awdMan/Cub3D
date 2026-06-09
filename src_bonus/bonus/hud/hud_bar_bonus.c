@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   hud_bar_bonus.c                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:07:35 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:07:35 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/hud_bar_bonus.c): HUD health bars. Drawn after
  * the weapon and before the crosshair. The player bar (bottom-left) always
  * shows and drains as enemies chip cub->player.hp (clamped at 0, no death).

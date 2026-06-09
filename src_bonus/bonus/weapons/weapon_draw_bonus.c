@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   weapon_draw_bonus.c                                :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:09:07 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:09:07 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/weapon_draw_bonus.c): weapon HUD pass. Runs
  * after the world layers (walls/sprites/minimap) and before the crosshair so
  * the reticle stays on top. Each weapon has five full-frame HUD XPMs. Frame 0

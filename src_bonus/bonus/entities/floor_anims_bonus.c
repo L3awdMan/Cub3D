@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   floor_anims_bonus.c                                :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:07:21 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:07:21 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/floor_anims_bonus.c): per-floor enemy art tables.
  * Map tile chars name floor-agnostic roles (SP_POD/FLUID/SCIENTIST/SPECIAL/
  * POD_ALIEN); the active floor decides which Blake Stone sprite set fills each

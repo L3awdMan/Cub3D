@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   door_use_bonus.c                                   :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:06:50 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:06:50 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/door_use_bonus.c): KEY_E door interaction and
  * the per-ray pass-through test consumed by the DDA. toggle_door flips the
  * faced door's target (open ↔ closed); the slide itself runs in

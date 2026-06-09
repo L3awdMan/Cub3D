@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   texture_free_bonus.c                               :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:08:23 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:08:23 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/texture_free_bonus.c): texture teardown. Split
  * out of texture.c so the loader file stays within the function-per-file
  * limit. free_world_tex() drops the four wall textures and the bonus wall

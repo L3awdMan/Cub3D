@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   projectile_bonus.c                                 :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:08:14 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:08:14 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/projectile_bonus.c): in-flight enemy projectiles.
  * When an enemy fires (enemy_ai_bonus.c) it calls spawn_projectile, which aims
  * a pooled shot at the player. update_projectiles() flies every active shot

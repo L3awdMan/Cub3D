@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   door_draw_bonus.c                                  :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:06:47 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:06:47 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/door_draw_bonus.c): door column renderer.
  * Closed doors render as a normal wall stripe with cub->door_tex. While
  * a door is animating, the ray only reaches this function on columns

@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   sprite_draw_bonus.c                                :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:07:25 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:07:25 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/sprite_draw_bonus.c): sprite pass.
  * Each frame: pick the current animation frame for every sprite from the
  * wall-clock (now_ms), sort sprites far-to-near, project each into camera

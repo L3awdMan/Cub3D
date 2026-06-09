@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   enemy_ai_bonus.c                                   :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:07:12 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:07:12 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/enemy_ai_bonus.c): stationary enemy attack AI.
  * update_enemies() runs once per frame from loop_hook(). Any alive enemy whose
  * clear line of sight reaches the player within ATTACK_RANGE fires on a

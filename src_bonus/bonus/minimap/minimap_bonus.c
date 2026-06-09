@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   minimap_bonus.c                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:07:52 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:07:52 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/minimap_bonus.c): bonus feature #2 — minimap.
  * A player-centered top-down patch blitted over the 3D view each frame via
  * put_px (no extra MLX calls). Shows a MM_RADIUS-cell window of the grid,

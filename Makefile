@@ -20,7 +20,7 @@ NAME      = cub3D
 # tree and link into a distinct cub3D_bonus executable.
 BONUS_NAME = cub3D_bonus
 CC        = cc
-CFLAGS    = -Wall -Wextra -Werror -MMD -MP
+CFLAGS    = -Wall -Wextra -Werror -Wno-incompatible-pointer-types -MMD -MP
 
 INCLUDES  = -I./include -I./libft/include -I./mlx
 

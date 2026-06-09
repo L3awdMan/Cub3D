@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   projectile_draw_bonus.c                            :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:08:17 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:08:17 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/projectile_draw_bonus.c): draws in-flight enemy
  * projectiles in the sprite pass. Each active shot is wrapped in a temporary
  * t_sprite (its per-role proj art type) so it reuses the camera transform

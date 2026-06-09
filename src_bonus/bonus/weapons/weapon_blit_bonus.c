@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   weapon_blit_bonus.c                                :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:09:00 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:09:00 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/weapon_blit_bonus.c): low-level helpers for the
  * weapon HUD pass (weapon_draw_bonus.c). frame_bbox() trims a frame to its
  * opaque content so every weapon scales to the same on-screen width regardless

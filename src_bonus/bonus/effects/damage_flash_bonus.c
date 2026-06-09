@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   damage_flash_bonus.c                               :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:06:57 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:06:57 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/damage_flash_bonus.c): Call-of-Duty style red
  * hit-flash. After the frame is fully drawn, draw_damage_flash() tints the
  * image buffer red, strongest at the screen edges (a vignette) and clear in the

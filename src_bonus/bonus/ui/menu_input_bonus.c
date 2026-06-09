@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   menu_input_bonus.c                                 :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:08:48 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:08:48 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/menu_input_bonus.c): front-end input dispatch.
  * menu_input() is called on each edge-detected key press while a menu state is
  * active: Space/Enter advance, Up/Down (or W/S) move a cursor, Backspace steps

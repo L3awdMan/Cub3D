@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   floor_switch_bonus.c                               :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:08:01 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:08:03 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/floor_switch_bonus.c): floor progression. On a
  * floor-2 win, advance_floor() starts the ending cutscene; the cutscene then
  * calls advance_floor_after_cutscene() to tear down/reload floor 3. The floor-3

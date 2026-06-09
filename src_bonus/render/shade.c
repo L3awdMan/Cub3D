@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   shade.c                                            :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:10:35 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:10:35 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 3 (src/render/shade.c): mandatory polish helpers split out of
  * render.c to keep both files Norm-compliant (≤5 functions per file).
  * Contains: per-channel color shader, HUD crosshair, head-bob horizon. */

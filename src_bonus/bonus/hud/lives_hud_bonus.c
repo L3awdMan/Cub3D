@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   lives_hud_bonus.c                                  :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:07:40 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:07:40 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/lives_hud_bonus.c): "enemies remaining" lives
  * counter — load side. The 24 panel frames (lives_0..lives_23) are lazily
  * loaded once, then draw_lives_hud (lives_hud_draw_bonus.c) blits the frame

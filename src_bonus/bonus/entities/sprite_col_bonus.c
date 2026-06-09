@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   sprite_col_bonus.c                                 :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:07:23 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:07:23 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/sprite_col_bonus.c): sprite column blitter.
  * Draws one transformed sprite column-by-column from its current animation
  * frame (s->tex). Skips texels equal to the frame's recorded transparent

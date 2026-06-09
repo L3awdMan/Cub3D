@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   weapon_bonus.c                                     :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:09:04 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:09:04 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/weapon_bonus.c): weapon asset I/O and gameplay
  * hooks. Loads the five-frame player-view weapon XPM animations at startup
  * (transparency sampled from each (0, 0) corner, same convention as sprites).

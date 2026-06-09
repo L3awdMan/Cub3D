@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   lives_hud_draw_bonus.c                             :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:07:42 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:07:42 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/lives_hud_draw_bonus.c): "enemies remaining"
  * lives counter — draw side. Picks the per-floor black slot in the floor-HUD
  * panel, fits the current lives frame inside it preserving aspect, and blits

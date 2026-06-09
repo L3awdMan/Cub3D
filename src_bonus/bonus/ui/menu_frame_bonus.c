@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   menu_frame_bonus.c                                 :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:08:45 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:08:45 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/menu_frame_bonus.c): menu screen selection + the
  * Start-Mission fade. menu_frame() maps the current GS_* state to the image to
  * blit; on GS_FADEOUT it indexes the clear->black sequence by elapsed time.

@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   endgame_input_bonus.c                              :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:08:36 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:08:36 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/ui/endgame_input_bonus.c): game-over screen input.
  * Split out of endgame_state_bonus.c to keep both files Norm-compliant. The
  * final game-over screen offers a Retry/Quit selection: W/S/Up/Down toggle it,

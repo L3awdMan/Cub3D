@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   draw_bg.c                                          :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:10:06 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:10:06 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/render/draw_bg.c): textured floor + ceiling via
  * per-pixel floor casting. For each background pixel we recover the world
  * point it covers from the row's perspective distance, sample the floor or

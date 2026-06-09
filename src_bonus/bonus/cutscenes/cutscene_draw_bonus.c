@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   cutscene_draw_bonus.c                              :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:06:38 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:06:38 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/cutscene_draw_bonus.c): cutscene update/draw.
  * While GS_CUTSCENE is active the world is frozen and render_frame draws only
  * the current frame scaled to the full window. */

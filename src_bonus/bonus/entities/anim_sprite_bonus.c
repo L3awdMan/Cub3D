@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   anim_sprite_bonus.c                                :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:07:09 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:07:09 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/anim_sprite_bonus.c): loads every animated sprite
  * type into cub->sprite_anims and frees them on shutdown. The enemy/boss art
  * is per-floor: floor_set(cub->floor) names the walk, firing and death XPM

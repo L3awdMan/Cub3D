@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   endgame_bonus.c                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:08:33 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:08:33 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/endgame_bonus.c): end-game UI — load side.
  * capture_spawn() snapshots the floor's start (player + initial sprites) so
  * respawn() can restore it. load_endgame_ui() lazily loads the dead frames,

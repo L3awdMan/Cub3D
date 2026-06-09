@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   restart_bonus.c                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:08:07 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:08:07 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/progression/restart_bonus.c): game retry flow.
  * Retry returns to floor 1, restores the floor start state, then replays the
  * floor-1 opening cutscene before the mission briefing is scheduled. */

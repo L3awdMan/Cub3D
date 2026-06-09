@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   cub3d.h                                            :+:      :+:    :+:   */
+/*   cub3d_bonus.h                                      :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: baelgadi <baelgadi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/21 16:28:27 by baelgadi          #+#    #+#             */
-/*   Updated: 2026/04/12 19:10:21 by baelgadi         ###   ########.fr       */
+/*   Updated: 2026/06/09 22:53:05 by zotaj-di         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,9 +37,9 @@
 
 # define FLAG_ALL	63
 
-# define MOVE_SPD	0.07
-# define ROT_SPD	0.1
-# define COLLISION	0.2
+# define MOVE_SPD	0.03
+# define ROT_SPD	0.025
+# define COLLISION	0.01
 
 # define CASTING	1
 
@@ -64,7 +64,7 @@
  *               (current_x - last_x) without recentering, so this scales
  *               real cursor movement — picking a sensible per-pixel rate
  *               that matches FPS feel without DPI-amplified over-rotation. */
-# define MOUSE_SENS	0.0025
+# define MOUSE_SENS	0.002
 
 /* SECTION 4 (bonus) — minimap. A player-centered top-down patch drawn over
  * the 3D view after the raycast pass.

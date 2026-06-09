@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   doors_bonus.c                                      :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:06:53 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:06:53 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/doors_bonus.c): bonus feature #3 — animated
  * doors. Each map cell holding 'D' has a t_door slot: progress runs
  * 0.0 (closed) → 1.0 (fully retracted) and target is the value progress

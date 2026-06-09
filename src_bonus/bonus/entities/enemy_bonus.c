@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   enemy_bonus.c                                      :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:07:15 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:07:15 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/enemy_bonus.c): shooting an enemy. shoot_hitscan()
  * is fired once per shot by update_weapon(): it projects every alive enemy into
  * camera space (same inverse-camera matrix as the sprite pass), keeps the ones

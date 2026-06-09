@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   enemy_move_bonus.c                                 :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:07:18 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:07:18 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/enemy_move_bonus.c): slow chase movement.
  * move_enemy() is called once per frame from enemy_tick(): an alive non-static
  * enemy that sees the player (los_clear) and sits within CHASE_RANGE but

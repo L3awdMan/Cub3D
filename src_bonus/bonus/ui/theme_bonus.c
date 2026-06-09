@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   theme_bonus.c                                      :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:08:55 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:08:55 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/theme_bonus.c): per-floor texture theme. Only the
  * NO/SO/WE/EA wall faces are read from the .cub; the door, floor, ceiling,
  * boss-ceiling and accent-wall (map chars 4/5/6) textures are otherwise fixed

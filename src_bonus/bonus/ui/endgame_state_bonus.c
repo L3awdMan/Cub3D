@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   endgame_state_bonus.c                              :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:08:39 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:08:39 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/endgame_state_bonus.c): end-game state machine +
  * overlay draw. update_endgame() flips PLAYING->DEAD when hp hits 0 and reads
  * the confirm key to respawn (dead) or advance_floor (win). Terminal game-over

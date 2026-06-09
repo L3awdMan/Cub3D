@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   sprites_bonus.c                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:07:28 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:07:28 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/sprites_bonus.c): map-driven sprite spawn.
  * Map tiles '2' and '3' mark the floor-1 enemy and boss respectively. Each
  * tile becomes a t_sprite entry (cell-centered position + type index) and is

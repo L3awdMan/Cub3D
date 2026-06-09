@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   mission_bonus.c                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:08:50 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:08:50 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/mission_bonus.c): full-screen mission briefings.
  * A floor schedules its briefing after entering gameplay. The player gets one
  * playable second, then GS_MISSION freezes the world until Enter/Space closes

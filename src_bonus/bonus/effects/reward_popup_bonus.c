@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   reward_popup_bonus.c                               :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/06/10 00:07:03 by zotaj-di          #+#    #+#             */
+/*   Updated: 2026/06/10 00:07:03 by zotaj-di         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 /* SECTION 4 (src_bonus/bonus/reward_popup_bonus.c): world reward pickups. A
  * killed enemy drops a meat (SP_MEAT) and a vanished boss drops a money bag
  * (SP_MONEY) as grounded billboard sprites appended to cub->sprites (guarded by
