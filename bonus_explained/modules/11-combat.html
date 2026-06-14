@@ -1,0 +1,314 @@
+    <section class="module" id="module-11">
+      <div class="module-inner">
+        <p class="module-eyebrow">Module 11 · Projectiles & combat</p>
+        <h1 class="module-title">Two ways to deal damage: a flying ball, and an instant ray under your crosshair.</h1>
+        <p class="module-lede">
+          Combat splits cleanly in two directions. <strong>Enemy → player</strong> is a travelling projectile (you can see it coming and dodge). <strong>Player → enemy</strong> is <span class="term" data-definition="A shot that hits instantly along a line — no projectile travels.">hitscan</span>: the moment you click, the nearest enemy under the crosshair dies, if a wall isn't in the way. This module covers the projectile pool, the aim-band hitscan, and the weapon HUD that ties the trigger to the screen.
+        </p>
+
+        <h2 class="screen-heading">Enemy fire: ball or invisible chip</h2>
+        <p class="text-block">
+          Back in the AI, <code>enemy_fire()</code> branches on whether the enemy's role has projectile art. Most do — they launch a shot. The fluid alien (empty projectile list, remember Module 9) has none, so it chips your HP instantly and invisibly.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — enemy_ai_bonus.c:66</span>
+<pre><code><span class="code-line"><span class="code-keyword">static</span> <span class="code-keyword">void</span>	<span class="code-function">enemy_fire</span>(t_cub *cub, t_sprite *s)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">if</span> (cub->sprite_anims[<span class="code-function">proj_type</span>(s->type)].count &gt; 0)</span>
+<span class="code-line">	{</span>
+<span class="code-line">		<span class="code-function">spawn_projectile</span>(cub, s);</span>
+<span class="code-line">		<span class="code-keyword">return</span> ;</span>
+<span class="code-line">	}</span>
+<span class="code-line">	cub->player.hp -= <span class="code-function">player_dmg</span>(cub);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (cub->player.hp &lt; 0)</span>
+<span class="code-line">		cub->player.hp = 0;</span>
+<span class="code-line">	cub->player.hurt_ms = <span class="code-function">now_ms</span>();</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">An enemy opens fire.</p>
+              <p class="tl"></p>
+              <p class="tl">Does this role have projectile frames loaded?</p>
+              <p class="tl"></p>
+              <p class="tl">Yes → launch a flying shot and stop.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">No (fluid alien) → remove HP right now...</p>
+              <p class="tl">...clamp at zero (HUD never goes negative)...</p>
+              <p class="tl"></p>
+              <p class="tl">...and stamp the hit time so the red flash fires.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">⚡</div>
+          <div class="callout-content">
+            <strong class="callout-title"><code>player_dmg(cub)</code>, not a constant</strong>
+            <p>Both damage paths (the projectile impact and the invisible chip) call <code>player_dmg(cub)</code>, which scales the base <code>ATTACK_DMG</code> by the chosen difficulty. That's the single hook where Easy / Skilled / Gigachad change how hard you get hit — we'll see it in Module 13.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The projectile pool</h2>
+        <p class="text-block">
+          Projectiles never touch the heap. <code>cub->projectiles[]</code> is a fixed array of <code>MAX_PROJ</code> (32) slots, each with an <code>active</code> flag. <code>spawn_projectile()</code> finds the first free slot, sets its position to the enemy and its velocity to the unit direction toward you × <code>PROJ_SPD</code>. If all 32 are busy, the shot is simply dropped.
+        </p>
+
+        <div class="step-cards">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>Spawn</strong>
+              <p>Claim a free slot, aim it at the player's current position, tag it with the firing role's <code>proj_type</code> art.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>Fly &amp; test</strong>
+              <p><code>step_one()</code> advances each active shot, expires it on a wall / closed door, or on reaching you (within <code>PROJ_HIT_DIST</code>) deals <code>player_dmg</code>.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>Draw</strong>
+              <p><code>draw_one_proj()</code> wraps the shot in a temporary <code>t_sprite</code> and reuses the whole sprite pipeline.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — projectile_bonus.c:78</span>
+<pre><code><span class="code-line"><span class="code-keyword">static</span> <span class="code-keyword">void</span>	<span class="code-function">step_one</span>(t_cub *cub, t_proj *p)</span>
+<span class="code-line">{</span>
+<span class="code-line">	p->x += p->dx;</span>
+<span class="code-line">	p->y += p->dy;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (<span class="code-function">proj_blocked</span>(cub, p->x, p->y))</span>
+<span class="code-line">	{</span>
+<span class="code-line">		p->active = 0;</span>
+<span class="code-line">		<span class="code-keyword">return</span> ;</span>
+<span class="code-line">	}</span>
+<span class="code-line">	dx = cub->player.pos_x - p->x;</span>
+<span class="code-line">	dy = cub->player.pos_y - p->y;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (dx * dx + dy * dy &gt; PROJ_HIT_DIST * PROJ_HIT_DIST)</span>
+<span class="code-line">		<span class="code-keyword">return</span> ;</span>
+<span class="code-line">	p->active = 0;</span>
+<span class="code-line">	cub->player.hp -= <span class="code-function">player_dmg</span>(cub);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (cub->player.hp &lt; 0)</span>
+<span class="code-line">		cub->player.hp = 0;</span>
+<span class="code-line">	cub->player.hurt_ms = <span class="code-function">now_ms</span>();</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Advance one shot for this frame.</p>
+              <p class="tl"></p>
+              <p class="tl">Move it along its velocity...</p>
+              <p class="tl"></p>
+              <p class="tl">Hit a wall or closed door?</p>
+              <p class="tl"></p>
+              <p class="tl">Free the slot and stop — the shot is gone.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Distance² to the player.</p>
+              <p class="tl"></p>
+              <p class="tl">Not close enough yet? keep flying.</p>
+              <p class="tl"></p>
+              <p class="tl">Otherwise: it hit — free the slot...</p>
+              <p class="tl">...deal difficulty-scaled damage...</p>
+              <p class="tl">...clamp at zero...</p>
+              <p class="tl"></p>
+              <p class="tl">...and trigger the red hit flash.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Drawing a projectile = drawing a sprite</strong>
+            <p>This is a lovely bit of reuse. <code>draw_one_proj()</code> builds a throwaway <code>t_sprite</code> from the projectile, calls the exact same <code>sprite_transform()</code> and <code>draw_sprite_cols()</code> from Module 8 — so walls occlude projectiles for free. The only override is <code>proj_rect()</code>, which centres the billboard on the <strong>horizon</strong> (eye level) instead of the floor line, so the ball flies at you rather than rolling on the ground.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Player hitscan — the aim band</h2>
+        <p class="text-block">
+          When you fire, <code>shoot_hitscan()</code> doesn't trace a literal ray. Instead it projects every alive enemy into camera space (same inverse-matrix maths as the sprite pass), and keeps the ones that pass three gates. The nearest survivor takes the hit.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — enemy_bonus.c:59</span>
+<pre><code><span class="code-line"><span class="code-keyword">static</span> <span class="code-keyword">int</span>	<span class="code-function">enemy_candidate</span>(t_cub *cub, <span class="code-keyword">int</span> i, <span class="code-keyword">double</span> *bestd)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">if</span> (cub->sprites[i].type &gt;= SP_PICKUP</span>
+<span class="code-line">		|| cub->sprites[i].state == SP_DYING)</span>
+<span class="code-line">		<span class="code-keyword">return</span> (0);</span>
+<span class="code-line">	depth = <span class="code-function">enemy_project</span>(cub, &amp;cub->sprites[i], &amp;col);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (depth &lt;= 0.0 || depth &gt;= *bestd)</span>
+<span class="code-line">		<span class="code-keyword">return</span> (0);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (col &lt; WIN_W / 2 - SHOT_AIM || col &gt; WIN_W / 2 + SHOT_AIM)</span>
+<span class="code-line">		<span class="code-keyword">return</span> (0);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (depth &gt; cub->zbuf[col])</span>
+<span class="code-line">		<span class="code-keyword">return</span> (0);</span>
+<span class="code-line">	*bestd = depth;</span>
+<span class="code-line">	<span class="code-keyword">return</span> (1);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Is enemy i a valid target for this shot?</p>
+              <p class="tl"></p>
+              <p class="tl">Skip pickups...</p>
+              <p class="tl">...and anything already dying.</p>
+              <p class="tl"></p>
+              <p class="tl">Project it: get its depth + screen column.</p>
+              <p class="tl">Gate 1: in front of us, and nearer than the best so far.</p>
+              <p class="tl"></p>
+              <p class="tl">Gate 2: its column sits inside the centred aim band (±SHOT_AIM).</p>
+              <p class="tl"></p>
+              <p class="tl">Gate 3: not hidden behind a wall (compare to the z-buffer).</p>
+              <p class="tl"></p>
+              <p class="tl">New nearest valid target → remember its depth...</p>
+              <p class="tl">...and report a hit.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">⚡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Hitscan depends on last frame's z-buffer</strong>
+            <p>Gate 3 reads <code>cub->zbuf[col]</code> — the wall depth from the rendering pass. That's why you can't shoot enemies through walls: if the wall in that column is nearer than the enemy, the candidate is rejected. It's the same buffer the sprite blitter uses for occlusion, doing double duty as the "can I hit this?" test.</p>
+          </div>
+        </div>
+
+        <p class="text-block">
+          The caller, <code>shoot_hitscan()</code>, loops every sprite tracking the nearest candidate (<code>bestd</code> starts at <code>SHOT_RANGE</code>), then decrements that enemy's HP. If HP hits zero it flips to <code>SP_DYING</code>, decrements the <code>lives</code> counter, and — unless it's the boss — drops a meat reward. Miss everything and the shot is silent; nothing happens.
+        </p>
+
+        <h2 class="screen-heading">The weapon HUD — trigger to pixels</h2>
+        <p class="text-block">
+          <code>update_weapon()</code> is the per-frame trigger clock. A held <code>SPACE</code> or a left-click (flagged by the <code>weapon_fire</code> button hook) starts a shot: it sets <code>firing</code>, stamps <code>fire_ms</code>, and fires the hitscan <strong>once</strong>. The five-frame animation then plays for <code>WPN_FIRE_MS</code> before snapping back to idle.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — weapon_draw_bonus.c:59</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">update_weapon</span>(t_cub *cub)</span>
+<span class="code-line">{</span>
+<span class="code-line">	w = &amp;cub->weapon;</span>
+<span class="code-line">	now = <span class="code-function">now_ms</span>();</span>
+<span class="code-line">	<span class="code-keyword">if</span> ((cub->keys[KEY_SPACE] || w->shoot) &amp;&amp; !w->firing)</span>
+<span class="code-line">	{</span>
+<span class="code-line">		w->firing = 1;</span>
+<span class="code-line">		w->fire_ms = now;</span>
+<span class="code-line">		<span class="code-function">shoot_hitscan</span>(cub);</span>
+<span class="code-line">	}</span>
+<span class="code-line">	w->shoot = 0;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (w->firing &amp;&amp; now - w->fire_ms &gt;= WPN_FIRE_MS)</span>
+<span class="code-line">		w->firing = 0;</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Run the trigger logic once per frame.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Fire pressed (key or click) AND not already mid-shot?</p>
+              <p class="tl"></p>
+              <p class="tl">Start the firing animation...</p>
+              <p class="tl">...stamp when it began...</p>
+              <p class="tl">...and resolve exactly ONE hitscan shot.</p>
+              <p class="tl"></p>
+              <p class="tl">Consume the click flag (so one click = one shot).</p>
+              <p class="tl">Firing animation finished its WPN_FIRE_MS? back to idle.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-block">
+          The <code>!w->firing</code> guard is the rate limiter: you can't start a new shot until the current animation finishes, so holding the trigger fires at a fixed cadence. <code>draw_weapon_img()</code> then picks the frame, trims the transparent border with <code>frame_bbox()</code>, scales it to <code>WPN_SCALE</code> of the window width, and blits it centred along the bottom edge.
+        </p>
+
+        <h2 class="screen-heading">Picking up weapons</h2>
+        <p class="text-block">
+          Stepping on a <code>PICKUP_CHARS</code> (<code>"789P"</code>) tile swaps your weapon. <code>weapon_pickup()</code> reads the tile letter, sets <code>weapon.current</code> to its index + 1, removes the floor sprite, and clears the tile so it can't be grabbed twice. There are five weapons (index 0 is the starting pistol).
+        </p>
+
+        <h2 class="screen-heading">Pop quiz</h2>
+        <div class="quiz-container" id="quiz-module11">
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Right. <code>shoot_hitscan</code> rejects any candidate where <code>depth &gt; cub->zbuf[col]</code> — i.e. a wall in that column is nearer — so walls block your shots via the z-buffer."
+               data-explanation-wrong="It's the z-buffer gate: a candidate is dropped when the wall depth in its column is nearer than the enemy. No wall collision trace is needed.">
+            <h3 class="quiz-question">What prevents your hitscan from killing an enemy hiding behind a wall?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The enemy's <code>state</code> is set to hidden when behind cover.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The candidate is rejected when <code>depth &gt; cub->zbuf[col]</code> (wall is nearer).</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>A separate DDA ray is traced toward the enemy.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Exactly. The pool is a fixed <code>MAX_PROJ</code> array of slots with an <code>active</code> flag — <code>spawn_projectile</code> reuses a free slot, so no per-shot malloc/free."
+               data-explanation-wrong="It's a fixed-size pool (<code>MAX_PROJ</code> slots, an <code>active</code> flag each). Nothing is heap-allocated per shot.">
+            <h3 class="quiz-question">How are in-flight projectiles stored?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>A linked list, malloc'd per shot and freed on impact.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Appended to the sprite array like enemies.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>A fixed pool of <code>MAX_PROJ</code> slots with a per-slot <code>active</code> flag.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="a"
+               data-explanation-right="Right. <code>draw_one_proj</code> fills a temporary <code>t_sprite</code> and calls <code>sprite_transform</code> + <code>draw_sprite_cols</code>, then only overrides the rectangle (eye-level via <code>proj_rect</code>)."
+               data-explanation-wrong="Projectiles reuse the sprite pipeline through a throwaway <code>t_sprite</code>; only the on-screen rectangle is overridden to float at eye level.">
+            <h3 class="quiz-question">How does a projectile get drawn and occluded by walls?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>It's wrapped in a temporary <code>t_sprite</code> and reuses <code>sprite_transform</code> + the z-buffered column blitter.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>It has its own dedicated raycaster.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>It's drawn as a 2D HUD overlay, ignoring walls.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Correct. <code>update_weapon</code> only starts a shot when <code>!w->firing</code>, so a new shot can't begin until the current animation ends — that's the fire-rate limiter."
+               data-explanation-wrong="The <code>!w->firing</code> guard is the rate limiter: holding the trigger can't restart a shot until the previous firing animation finishes.">
+            <h3 class="quiz-question">Holding the fire key doesn't shoot continuously every frame. Why?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The key repeat rate is throttled by X11.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>A new shot only starts when <code>!w->firing</code> — it must wait for the firing animation to finish.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Ammo is consumed and must regenerate.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module11')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module11')">Try Again</button>
+        </div>
+
+        <p class="module-outro">You can shoot and be shot. Now let's show all that on screen — health bars, the lives counter, and the hit/heal flashes.</p>
+      </div>
+    </section>

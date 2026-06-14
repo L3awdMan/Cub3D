@@ -1,0 +1,300 @@
+    <section class="module" id="module-7">
+      <div class="module-inner">
+        <p class="module-eyebrow">Module 7 · Shade &amp; head bob</p>
+        <h1 class="module-title">Three tiny tricks that make flat pixels feel like a corridor.</h1>
+        <p class="module-lede">
+          Walls are textured. Doors slide. The minimap shows you a disc of map. None of that, by itself, feels three-dimensional. Three small effects close the gap: depth fog (far things go dark), a North/South darkening trick from Wolfenstein, and a sine-wave head bob that rocks the horizon while you walk. Each is a few lines of math.
+        </p>
+
+        <h2 class="screen-heading">The per-channel multiplier — <code>shade_rgb</code></h2>
+        <p class="text-block">
+          Almost every shaded pixel in the game is just <code>texel × k</code>, where <code>k</code> is a number between 0 and 1. Multiply each of the R, G, B channels independently by <code>k</code>, clamp back to <code>[0, 255]</code>, repack. Black at <code>k = 0</code>, original color at <code>k = 1</code>.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — shade.c:25</span>
+<pre><code><span class="code-line"><span class="code-keyword">unsigned</span> <span class="code-keyword">int</span>	<span class="code-function">shade_rgb</span>(<span class="code-keyword">unsigned</span> <span class="code-keyword">int</span> color, <span class="code-keyword">double</span> k)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">int</span>	r;</span>
+<span class="code-line">	<span class="code-keyword">int</span>	g;</span>
+<span class="code-line">	<span class="code-keyword">int</span>	b;</span>
+<span class="code-line"></span>
+<span class="code-line">	r = (<span class="code-keyword">int</span>)(((color &gt;&gt; 16) &amp; 0xFF) * k);</span>
+<span class="code-line">	g = (<span class="code-keyword">int</span>)(((color &gt;&gt; 8) &amp; 0xFF) * k);</span>
+<span class="code-line">	b = (<span class="code-keyword">int</span>)((color &amp; 0xFF) * k);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (r &lt; 0) r = 0;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (g &lt; 0) g = 0;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (b &lt; 0) b = 0;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (r &gt; 255) r = 255;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (g &gt; 255) g = 255;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (b &gt; 255) b = 255;</span>
+<span class="code-line">	<span class="code-keyword">return</span> ((<span class="code-keyword">unsigned</span> <span class="code-keyword">int</span>)((r &lt;&lt; 16) | (g &lt;&lt; 8) | b));</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Multiply an RGB color by k, clamp, return the new RGB.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Extract red channel (bits 16–23) and scale.</p>
+              <p class="tl">Green (bits 8–15).</p>
+              <p class="tl">Blue (bits 0–7).</p>
+              <p class="tl">Underflow guard.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Overflow guard so a k &gt; 1 (e.g. flash effect) doesn't roll into the next byte.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Repack into a single 0xRRGGBB.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🎨</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why channels independently?</strong>
+            <p>A pixel color is three numbers in one int: red, green, blue. Scaling them in lockstep dims the whole color uniformly toward black. Scaling them differently would <em>tint</em> the color — useful for sunset effects, but cub3D wants plain darkening.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Trick 1 — Depth fog</h2>
+        <p class="text-block">
+          Far walls should be dark, close walls bright. The formula is simply <code>fog = min(1, FOG_K / perp_dist)</code>. At <code>perp_dist ≤ FOG_K = 6</code> (six cells away) the wall is at full brightness. Beyond that, brightness falls off as <code>1 / distance</code>. Multiply the texel by that and you've got fog.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — ray_utils.c:99 (inside calc_draw_params)</span>
+<pre><code><span class="code-line">dw-&gt;shade = <span class="code-function">fmin</span>(1.0, FOG_K / ray-&gt;perp_dist);</span>
+<span class="code-line"><span class="code-keyword">if</span> (ray-&gt;side == 1)</span>
+<span class="code-line">	dw-&gt;shade *= SIDE_SHADE;</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Per-column shade: full at ≤ 6 cells, falls off as 1/distance after.</p>
+              <p class="tl">If this ray hit a North/South face,</p>
+              <p class="tl">also multiply by SIDE_SHADE = 0.55 (darker).</p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Trick 2 — Wolfenstein side darkening</h2>
+        <p class="text-block">
+          Faces hit on the X axis (East/West) and faces hit on the Y axis (North/South) get different brightness. Same texture, but one set rendered at <code>0.55 × brightness</code>. The eye reads that as a corner — adjacent walls look like adjacent walls, not one continuous flat sheet. Wolfenstein 3D did this in 1992 and it still works.
+        </p>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">🧱</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why this sells "corner-ness"</strong>
+            <p>In real life, light from above falls more directly on horizontal-facing walls than on perpendicular ones. The brain expects the contrast. Without side darkening, two adjacent textured walls bleed into one ambiguous shape; with it, the corner pops.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Trick 3 — Head bob</h2>
+        <p class="text-block">
+          The "horizon" — the Y coordinate where ceiling meets floor — is normally just <code>WIN_H / 2</code>. The bonus build adds a <code>sin</code> wave on top, advancing the phase only while a WASD key is held. Walk → horizon sways → walls slide up and down a few pixels → you feel like you're walking.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — shade.c:79</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">update_horizon</span>(t_cub *cub)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">int</span>	moving;</span>
+<span class="code-line"></span>
+<span class="code-line">	moving = cub-&gt;keys[KEY_W] || cub-&gt;keys[KEY_S]</span>
+<span class="code-line">		|| cub-&gt;keys[KEY_A] || cub-&gt;keys[KEY_D];</span>
+<span class="code-line">	<span class="code-keyword">if</span> (moving)</span>
+<span class="code-line">		cub-&gt;bob_t += BOB_STEP;</span>
+<span class="code-line">	cub-&gt;horizon = WIN_H / 2 + (<span class="code-keyword">int</span>)(<span class="code-function">sin</span>(cub-&gt;bob_t) * BOB_AMP);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Per-frame: nudge the head-bob phase, recompute the horizon.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Any WASD key held?</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Advance the sine phase only while moving (so view sits still when stopped).</p>
+              <p class="tl">Horizon = screen middle + sin(phase) × 5 px. ±5 pixel sway, ~0.18 radians per frame.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">📈</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why advance phase only while moving</strong>
+            <p>If <code>bob_t</code> always ticked, the world would bob even when you stood still. Gating advance on "is a movement key held" makes the bob feel coupled to actual locomotion. The phase persists, so when you start walking again you continue the wave instead of snapping back to zero.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Where everything plugs into the wall stripe</h2>
+        <p class="text-block">
+          The same <code>dw-&gt;shade</code> field carries the combined fog × side-darkening multiplier. The texture column drawer reads it once per row of the stripe and multiplies every texel through <code>shade_rgb</code>.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — draw_wall.c:63</span>
+<pre><code><span class="code-line"><span class="code-keyword">static</span> <span class="code-keyword">void</span>	<span class="code-function">draw_tex_col</span>(t_cub *cub, <span class="code-keyword">int</span> x, t_draw *dw, t_img *tex)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">int</span>	y;</span>
+<span class="code-line">	<span class="code-keyword">int</span>	tex_y;</span>
+<span class="code-line">	<span class="code-keyword">unsigned</span> <span class="code-keyword">int</span>	color;</span>
+<span class="code-line"></span>
+<span class="code-line">	y = dw-&gt;start;</span>
+<span class="code-line">	<span class="code-keyword">while</span> (y &lt;= dw-&gt;end)</span>
+<span class="code-line">	{</span>
+<span class="code-line">		tex_y = (<span class="code-keyword">int</span>)dw-&gt;pos;</span>
+<span class="code-line">		<span class="code-keyword">if</span> (tex_y &gt;= tex-&gt;height)</span>
+<span class="code-line">			tex_y = tex-&gt;height - 1;</span>
+<span class="code-line">		<span class="code-keyword">if</span> (tex_y &lt; 0)</span>
+<span class="code-line">			tex_y = 0;</span>
+<span class="code-line">		color = <span class="code-function">shade_rgb</span>(<span class="code-function">get_tex_pixel</span>(tex, dw-&gt;tex_x, tex_y), dw-&gt;shade);</span>
+<span class="code-line">		<span class="code-function">put_px</span>(&amp;cub-&gt;img, x, y, color);</span>
+<span class="code-line">		dw-&gt;pos += dw-&gt;step;</span>
+<span class="code-line">		y++;</span>
+<span class="code-line">	}</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Paint one vertical wall column.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Start at the top of the stripe.</p>
+              <p class="tl">Walk down to the bottom.</p>
+              <p class="tl"></p>
+              <p class="tl">Sample row in the texture (pos is a fractional accumulator).</p>
+              <p class="tl">Clamp top.</p>
+              <p class="tl"></p>
+              <p class="tl">Clamp bottom.</p>
+              <p class="tl"></p>
+              <p class="tl">Sample the texel + apply the per-column shade.</p>
+              <p class="tl">Write to the frame buffer.</p>
+              <p class="tl">Advance the texture-row accumulator by the per-pixel step.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Fog for the floor + ceiling too</h2>
+        <p class="text-block">
+          The floor/ceiling textures get the same treatment, but with a slightly different formula. Because background pixels can be arbitrarily far away, dividing by <code>(FOG_K + rd)</code> instead of just <code>FOG_K / rd</code> bounds the multiplier in <code>(0, 1)</code> for any <code>rd ≥ 0</code> — no overflow, smooth fall-off all the way to the horizon.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — draw_bg.c:52</span>
+<pre><code><span class="code-line"><span class="code-keyword">return</span> (<span class="code-function">shade_rgb</span>(<span class="code-function">get_tex_pixel</span>(tex,</span>
+<span class="code-line">			((<span class="code-keyword">int</span>)(tw * (fx - <span class="code-function">floor</span>(fx)))) &amp; (tw - 1),</span>
+<span class="code-line">			((<span class="code-keyword">int</span>)(tw * (fy - <span class="code-function">floor</span>(fy)))) &amp; (tw - 1)),</span>
+<span class="code-line">		FOG_K / (FOG_K + rd)));</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Sample the floor/ceiling texel and shade it by depth fog.</p>
+              <p class="tl">Wrap fx into [0, tex_width) using bit-mask AND (works because tw is power-of-two).</p>
+              <p class="tl">Same for fy.</p>
+              <p class="tl">Fog multiplier: FOG_K / (FOG_K + rd) — always in (0, 1].</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">∞</div>
+          <div class="callout-content">
+            <strong class="callout-title">Two fog formulas, same vibe</strong>
+            <p>Walls use <code>min(1, FOG_K / d)</code> — full brightness up close, then 1/d. Floor uses <code>FOG_K / (FOG_K + d)</code> — always less than 1, smooth from horizon outward. Different choice, same goal: bound brightness, sell depth.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Pop quiz</h2>
+        <div class="quiz-container" id="quiz-module7">
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Right. The N/S vs E/W brightness difference makes corners visually pop — adjacent walls read as adjacent surfaces, not one continuous sheet."
+               data-explanation-wrong="Side shade is purely cosmetic — it doesn't change collision or texturing.">
+            <h3 class="quiz-question">If you set <code>SIDE_SHADE</code> to <code>1.0</code> (disabling side darkening), what happens visually?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Walls become brighter overall — fog still works.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Corners lose their visual contrast; adjacent walls blend into one ambiguous shape.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Doors stop animating.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Yes. <code>bob_t</code> advances only when WASD is held — gating the phase makes the bob couple to actual locomotion."
+               data-explanation-wrong="The sine wave isn't time-based; it ticks per frame, but only while moving.">
+            <h3 class="quiz-question">Why does the horizon stop swaying when you let go of W?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span><code>update_horizon</code> resets <code>bob_t</code> to 0 when no keys are held.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The sine wave has zero amplitude when speed is zero.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span><code>bob_t</code> only advances if at least one WASD key is held — phase frozen otherwise.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="a"
+               data-explanation-right="Exactly — bit-shifting + masking pulls the byte for each channel out of the packed int. Multiplying each by k and re-packing is the whole technique."
+               data-explanation-wrong="An RGB int holds three 8-bit channels packed into one 32-bit value; you need the shifts to isolate them.">
+            <h3 class="quiz-question">A texel is 0xFF8080 (a pinkish red). <code>shade_rgb(texel, 0.5)</code> returns what?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>About 0x7F4040 — each channel halved.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>0x7FC0C0 — only the red channel is changed.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>0xFF8080 — multiplying an int by 0.5 truncates back to itself.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module7')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module7')">Try Again</button>
+        </div>
+
+        <h2 class="screen-heading">Where to go next</h2>
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid #D94F30">
+            <div class="pattern-icon" style="background: #D94F30">🧭</div>
+            <h4 class="pattern-title">Pitch (look up/down)</h4>
+            <p class="pattern-desc">Make the horizon variable on mouse-Y too, not just bob. cub3D's horizon-based projection already supports it — feed mouse vertical delta into <code>horizon</code>.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid #2A7B9B">
+            <div class="pattern-icon" style="background: #2A7B9B">🌊</div>
+            <h4 class="pattern-title">Animated water tiles</h4>
+            <p class="pattern-desc">Swap the floor texture cyclically per <code>now_ms()</code>. Same trick as sprite animation — different texture per frame.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid #D4A843">
+            <div class="pattern-icon" style="background: #D4A843">💡</div>
+            <h4 class="pattern-title">Point lights</h4>
+            <p class="pattern-desc">For each wall hit, compute distance to a few light sources and add a per-channel boost via <code>shade_rgb</code> with k &gt; 1.</p>
+          </div>
+        </div>
+
+        <p class="module-outro">That's the bonus build, decoded. Open <code>src_bonus/</code> — none of it should feel strange anymore.</p>
+      </div>
+    </section>

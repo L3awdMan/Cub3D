@@ -1,0 +1,388 @@
+    <section class="module" id="module-3">
+      <div class="module-inner">
+        <p class="module-eyebrow">Module 3 · Movement &amp; rotation</p>
+        <h1 class="module-title">A box on graph paper that walks and spins.</h1>
+        <p class="module-lede">
+          The player isn't a model with feet — it's two 2D vectors. <code>dir</code> points where you're facing. <code>plane</code> is a sideways vector perpendicular to <code>dir</code> that defines the FOV. Move the player by adding a scaled copy of either vector to their position. Rotate by multiplying both vectors through a 2D rotation matrix. That's the whole game of movement.
+        </p>
+
+        <h2 class="screen-heading">Held-key state, not key events</h2>
+        <p class="text-block">
+          cub3D doesn't move you on KeyPress. It marks the key as "currently held" and lets the per-frame loop sample that state every time. Smooth movement, no autorepeat lag.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — hooks.c:24</span>
+<pre><code><span class="code-line"><span class="code-keyword">int</span>	<span class="code-function">key_press</span>(<span class="code-keyword">int</span> key, <span class="code-keyword">void</span> *param)</span>
+<span class="code-line">{</span>
+<span class="code-line">	t_cub	*cub;</span>
+<span class="code-line"></span>
+<span class="code-line">	cub = (t_cub *)param;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (key &gt;= 0 &amp;&amp; key &lt; 65536 &amp;&amp; !cub-&gt;keys[key])</span>
+<span class="code-line">	{</span>
+<span class="code-line">		<span class="code-keyword">if</span> (key == KEY_M)</span>
+<span class="code-line">			cub-&gt;show_minimap = !cub-&gt;show_minimap;</span>
+<span class="code-line">		<span class="code-keyword">if</span> (key == KEY_E)</span>
+<span class="code-line">			<span class="code-function">toggle_door</span>(cub);</span>
+<span class="code-line">	}</span>
+<span class="code-line">	<span class="code-keyword">if</span> (key &gt;= 0 &amp;&amp; key &lt; 65536)</span>
+<span class="code-line">		cub-&gt;keys[key] = 1;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (key == KEY_ESC)</span>
+<span class="code-line">		<span class="code-function">close_hook</span>(param);</span>
+<span class="code-line">	<span class="code-keyword">return</span> (0);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">X11 calls this for every KeyPress.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Edge-detect: only if the key was NOT already held.</p>
+              <p class="tl"></p>
+              <p class="tl">First press of M toggles the minimap.</p>
+              <p class="tl"></p>
+              <p class="tl">First press of E toggles the faced door.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Now mark the key as held (every frame, including autorepeat).</p>
+              <p class="tl"></p>
+              <p class="tl">ESC = quit.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🔘</div>
+          <div class="callout-content">
+            <strong class="callout-title">Edge-trigger vs level-trigger</strong>
+            <p>Movement keys are "level-triggered" — read every frame while held. Toggles (door, minimap) are "edge-triggered" — only the moment the key goes from up to down counts. The <code>!cub-&gt;keys[key]</code> check before flipping is the edge gate.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading"><code>apply_movement</code> — one key, one vector</h2>
+        <p class="text-block">
+          W and S walk along your facing direction. A and D strafe along the camera plane (which is perpendicular to <code>dir</code>). The sign argument flips forward into backward, left into right.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — movement.c:87</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">apply_movement</span>(t_cub *cub)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">if</span> (cub-&gt;keys[KEY_W])</span>
+<span class="code-line">		<span class="code-function">move_along</span>(cub, cub-&gt;player.dir_x, cub-&gt;player.dir_y, 1);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (cub-&gt;keys[KEY_S])</span>
+<span class="code-line">		<span class="code-function">move_along</span>(cub, cub-&gt;player.dir_x, cub-&gt;player.dir_y, -1);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (cub-&gt;keys[KEY_A])</span>
+<span class="code-line">		<span class="code-function">move_along</span>(cub, cub-&gt;player.plane_x, cub-&gt;player.plane_y, -1);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (cub-&gt;keys[KEY_D])</span>
+<span class="code-line">		<span class="code-function">move_along</span>(cub, cub-&gt;player.plane_x, cub-&gt;player.plane_y, 1);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Once per frame, react to held movement keys.</p>
+              <p class="tl"></p>
+              <p class="tl">W held → walk along the forward vector.</p>
+              <p class="tl">Direction = <code>dir</code>, sign = +1.</p>
+              <p class="tl">S held → walk along the forward vector backwards.</p>
+              <p class="tl">Same vector, sign = −1.</p>
+              <p class="tl">A held → strafe along the sideways plane vector backwards.</p>
+              <p class="tl">Plane vector, sign = −1.</p>
+              <p class="tl">D held → strafe forward along the plane vector.</p>
+              <p class="tl">Plane vector, sign = +1.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading"><code>move_along</code> — slide axes independently</h2>
+        <p class="text-block">
+          Here's the subtle bit. The proposed new X and new Y are checked separately. If X is fine but Y is into a wall, you slide along X. That's why you can rub against a wall and slip around it instead of stopping dead.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — movement.c:67</span>
+<pre><code><span class="code-line"><span class="code-keyword">static</span> <span class="code-keyword">void</span>	<span class="code-function">move_along</span>(t_cub *cub, <span class="code-keyword">double</span> vx, <span class="code-keyword">double</span> vy, <span class="code-keyword">int</span> sign)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">double</span>	nx;</span>
+<span class="code-line">	<span class="code-keyword">double</span>	ny;</span>
+<span class="code-line"></span>
+<span class="code-line">	nx = cub-&gt;player.pos_x + sign * vx * MOVE_SPD;</span>
+<span class="code-line">	ny = cub-&gt;player.pos_y + sign * vy * MOVE_SPD;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (<span class="code-function">can_move</span>(cub, nx, cub-&gt;player.pos_y))</span>
+<span class="code-line">		cub-&gt;player.pos_x = nx;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (<span class="code-function">can_move</span>(cub, cub-&gt;player.pos_x, ny))</span>
+<span class="code-line">		cub-&gt;player.pos_y = ny;</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Try to move the player along (vx, vy), flipped by sign.</p>
+              <p class="tl"></p>
+              <p class="tl">Where we'd land on X.</p>
+              <p class="tl">Where we'd land on Y.</p>
+              <p class="tl"></p>
+              <p class="tl">New X = old X + sign × vx × speed.</p>
+              <p class="tl">New Y = old Y + sign × vy × speed.</p>
+              <p class="tl">Test the X move on its own (keep old Y).</p>
+              <p class="tl">If OK, commit the X.</p>
+              <p class="tl">Then test the Y move on its own (using whatever X we just committed).</p>
+              <p class="tl">If OK, commit the Y.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">🧱</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why split the X and Y collision tests?</strong>
+            <p>If you tested the new (X, Y) as a single point, hitting a wall would stop you cold. Testing X and Y independently means you keep whichever component <em>didn't</em> hit, so you smoothly slide along the wall. Every shooter does this; cub3D's version is six lines.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading"><code>can_move</code> &amp; <code>corner_blocked</code> — bounding-box collision</h2>
+        <p class="text-block">
+          The player isn't a point — it's a small square with side <code>2 × COLLISION = 0.4</code> cells. <code>can_move</code> checks all four corners against the map. If any corner sits in a wall, an OOB cell, or a not-yet-open door, the move is rejected.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — movement.c:23</span>
+<pre><code><span class="code-line"><span class="code-keyword">static</span> <span class="code-keyword">int</span>	<span class="code-function">corner_blocked</span>(t_cub *cub, <span class="code-keyword">double</span> x, <span class="code-keyword">double</span> y)</span>
+<span class="code-line">{</span>
+<span class="code-line">	t_map	*map;</span>
+<span class="code-line">	<span class="code-keyword">int</span>	mx;</span>
+<span class="code-line">	<span class="code-keyword">int</span>	my;</span>
+<span class="code-line">	<span class="code-keyword">char</span>	c;</span>
+<span class="code-line"></span>
+<span class="code-line">	map = &amp;cub-&gt;map;</span>
+<span class="code-line">	mx = (<span class="code-keyword">int</span>)x;</span>
+<span class="code-line">	my = (<span class="code-keyword">int</span>)y;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (my &lt; 0 || my &gt;= map-&gt;height)</span>
+<span class="code-line">		<span class="code-keyword">return</span> (1);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (mx &lt; 0 || mx &gt;= (<span class="code-keyword">int</span>)<span class="code-function">ft_strlen</span>(map-&gt;grid[my]))</span>
+<span class="code-line">		<span class="code-keyword">return</span> (1);</span>
+<span class="code-line">	c = map-&gt;grid[my][mx];</span>
+<span class="code-line">	<span class="code-keyword">if</span> (c == <span class="code-string">'1'</span>)</span>
+<span class="code-line">		<span class="code-keyword">return</span> (1);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (c == <span class="code-string">'D'</span> &amp;&amp; !<span class="code-function">door_is_open</span>(cub, my, mx))</span>
+<span class="code-line">		<span class="code-keyword">return</span> (1);</span>
+<span class="code-line">	<span class="code-keyword">return</span> (0);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">True if the cell containing point (x, y) is impassable.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Truncate world coords into a cell index.</p>
+              <p class="tl"></p>
+              <p class="tl">Off the top/bottom edge → blocked.</p>
+              <p class="tl"></p>
+              <p class="tl">Off the left/right edge → blocked.</p>
+              <p class="tl"></p>
+              <p class="tl">Read the cell character.</p>
+              <p class="tl">Solid wall → blocked.</p>
+              <p class="tl"></p>
+              <p class="tl">Door that has not yet animated open enough → blocked.</p>
+              <p class="tl"></p>
+              <p class="tl">Anything else → walkable.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Four corners, one move</h2>
+        <div class="step-cards">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>(x − 0.2, y − 0.2)</strong>
+              <p>Top-left corner of the player box.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>(x + 0.2, y − 0.2)</strong>
+              <p>Top-right corner.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>(x − 0.2, y + 0.2)</strong>
+              <p>Bottom-left.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <strong>(x + 0.2, y + 0.2)</strong>
+              <p>Bottom-right. If <em>any</em> corner is blocked, the move is rejected.</p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Rotation is a single matrix multiply</h2>
+        <p class="text-block">
+          To rotate by angle <code>α</code>, both <code>dir</code> and <code>plane</code> are multiplied through the same 2D rotation matrix. They stay perpendicular because the same orthogonal transformation is applied to both.
+        </p>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">∑</div>
+          <div class="callout-content">
+            <strong class="callout-title">The 2D rotation matrix</strong>
+            <p style="font-family: var(--font-mono); font-size: 1.05rem; line-height: 1.6;">
+              new_x = old_x · cos(α) − old_y · sin(α)<br>
+              new_y = old_x · sin(α) + old_y · cos(α)
+            </p>
+            <p>Apply it to both your direction vector and your camera plane. The pair stays perpendicular because rotation preserves angles.</p>
+          </div>
+        </div>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — rotation.c:28</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">rotate_vectors</span>(t_player *p, <span class="code-keyword">double</span> angle)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">double</span>	old_dir_x;</span>
+<span class="code-line">	<span class="code-keyword">double</span>	old_plane_x;</span>
+<span class="code-line">	<span class="code-keyword">double</span>	cos_a;</span>
+<span class="code-line">	<span class="code-keyword">double</span>	sin_a;</span>
+<span class="code-line"></span>
+<span class="code-line">	cos_a = <span class="code-function">cos</span>(angle);</span>
+<span class="code-line">	sin_a = <span class="code-function">sin</span>(angle);</span>
+<span class="code-line">	old_dir_x = p-&gt;dir_x;</span>
+<span class="code-line">	p-&gt;dir_x = old_dir_x * cos_a - p-&gt;dir_y * sin_a;</span>
+<span class="code-line">	p-&gt;dir_y = old_dir_x * sin_a + p-&gt;dir_y * cos_a;</span>
+<span class="code-line">	old_plane_x = p-&gt;plane_x;</span>
+<span class="code-line">	p-&gt;plane_x = old_plane_x * cos_a - p-&gt;plane_y * sin_a;</span>
+<span class="code-line">	p-&gt;plane_y = old_plane_x * sin_a + p-&gt;plane_y * cos_a;</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Rotate the player's dir + plane vectors by <code>angle</code> radians.</p>
+              <p class="tl"></p>
+              <p class="tl">Stash the old X components — the formula needs the original value of one while computing the other.</p>
+              <p class="tl"></p>
+              <p class="tl">Compute cos and sin once each (cheaper than calling them twice).</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Save dir_x before overwriting it.</p>
+              <p class="tl">Apply the rotation matrix's first row to dir.</p>
+              <p class="tl">Second row (uses the original dir_x via old_dir_x).</p>
+              <p class="tl">Same dance for the plane vector.</p>
+              <p class="tl">First row.</p>
+              <p class="tl">Second row.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-content">
+            <strong class="callout-title">Watch the variable swap</strong>
+            <p>Notice <code>old_dir_x</code> being saved before the first overwrite. If you skip that and compute <code>dir_y</code> using the just-updated <code>dir_x</code>, the second equation reads the wrong value and your rotation slowly drifts the vector lengths to zero. Same trap as swapping two variables without a temp.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Two callers: keyboard + mouse</h2>
+        <p class="text-block">
+          <code>rotate_vectors</code> is de-static'd specifically so the mouse module can call the exact same function with a different angle. Same math, two input devices, zero duplication.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — rotation.c:50</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">apply_rotation</span>(t_cub *cub)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">if</span> (cub-&gt;keys[KEY_LEFT])</span>
+<span class="code-line">		<span class="code-function">rotate_vectors</span>(&amp;cub-&gt;player, -ROT_SPD);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (cub-&gt;keys[KEY_RIGHT])</span>
+<span class="code-line">		<span class="code-function">rotate_vectors</span>(&amp;cub-&gt;player, ROT_SPD);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Once per frame, react to held arrow keys.</p>
+              <p class="tl"></p>
+              <p class="tl">Left arrow held → rotate by a negative small angle (counter-clockwise).</p>
+              <p class="tl"></p>
+              <p class="tl">Right arrow held → rotate by a positive small angle (clockwise).</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Pop quiz</h2>
+        <div class="quiz-container" id="quiz-module3">
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Right. Testing X and Y as a combined point would stop you flush against a wall; splitting them lets you keep the unblocked axis."
+               data-explanation-wrong="Both X and Y candidates are checked — but separately, not as a combined point.">
+            <h3 class="quiz-question">Why does <code>move_along</code> call <code>can_move</code> twice — once with new X + old Y, once with old X + new Y?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Performance — two cheap tests are faster than one expensive one.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>So the player slides along the wall — keep the axis that's not blocked.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Because the bounding box is a rectangle, not a square.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Yes. Without the temporary, the second equation reads <code>dir_x</code> that was already modified by the first — incorrect output and over many frames, drift."
+               data-explanation-wrong="Performance and Norm rules aren't why — the temporary is correctness. Without it the matrix multiply gives the wrong answer.">
+            <h3 class="quiz-question">In <code>rotate_vectors</code>, why save <code>old_dir_x</code> in a temporary?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>To avoid recomputing cos/sin twice.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Because Norm requires named intermediate values.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>So computing <code>dir_y</code> still uses the original <code>dir_x</code>, not the just-updated one.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="a"
+               data-explanation-right="Exactly. Edge-trigger via <code>!keys[key]</code> ensures one tap = one toggle, even though X11 autorepeat keeps firing KeyPress while held."
+               data-explanation-wrong="Movement keys are sampled level-style (every frame while held). Action keys like M and E are edge-triggered.">
+            <h3 class="quiz-question">You press M and the minimap toggles. You keep holding M. Why doesn't it keep flipping every frame?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The toggle is gated by <code>!cub-&gt;keys[key]</code> — only the first transition counts.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>X11 only sends one KeyPress per physical tap.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The loop hook ignores M after the first frame.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module3')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module3')">Try Again</button>
+        </div>
+
+        <p class="module-outro">Next: the mouse, which is just another caller of <code>rotate_vectors</code>.</p>
+      </div>
+    </section>

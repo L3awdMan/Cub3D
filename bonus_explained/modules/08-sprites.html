@@ -1,0 +1,357 @@
+    <section class="module" id="module-8">
+      <div class="module-inner">
+        <p class="module-eyebrow">Module 8 · Sprite engine</p>
+        <h1 class="module-title">Walls are columns. Sprites are flat cards that always face you.</h1>
+        <p class="module-lede">
+          The raycaster only knows how to draw vertical wall stripes. Every enemy, boss, ammo pickup, dropped meat and flying projectile in the bonus is a <span class="term" data-definition="A flat 2D image that always rotates to face the camera, faking a 3D object.">billboard</span> — a single texture pasted onto the screen, scaled by distance, and clipped so walls hide what's behind them. This module is the engine that turns a world position <code>(x, y)</code> into pixels. Everything in the next four modules (enemies, AI, combat, pickups) rides on top of it.
+        </p>
+
+        <h2 class="screen-heading">The three jobs, every frame</h2>
+        <p class="text-block">
+          <code>draw_sprites()</code> runs <strong>after</strong> the wall pass, because it needs <code>cub->zbuf</code> — the per-column wall depth the raycaster just filled in. Each frame it does exactly three things, in order.
+        </p>
+        <div class="step-cards">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>Sort far-to-near</strong>
+              <p><code>sort_sprites()</code> orders the array so distant sprites are drawn first and near ones paint last, on top. Classic painter's algorithm.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>Transform to camera space</strong>
+              <p><code>sprite_transform()</code> projects each world position into a screen column + depth + on-screen rectangle, using the inverse of the camera matrix.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>Blit column by column</strong>
+              <p><code>draw_sprite_cols()</code> walks the rectangle, drops any column the wall is in front of (z-test), and copies texels for the rest.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — sprite_draw_bonus.c:104</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">draw_sprites</span>(t_cub *cub)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">int</span>	i;</span>
+<span class="code-line">	t_spr	s;</span>
+<span class="code-line"></span>
+<span class="code-line">	<span class="code-keyword">if</span> (!cub->sprites || cub->sprite_count &lt;= 0)</span>
+<span class="code-line">		<span class="code-keyword">return</span> ;</span>
+<span class="code-line">	<span class="code-function">sort_sprites</span>(cub);</span>
+<span class="code-line">	i = 0;</span>
+<span class="code-line">	<span class="code-keyword">while</span> (i &lt; cub->sprite_count)</span>
+<span class="code-line">	{</span>
+<span class="code-line">		<span class="code-keyword">if</span> (<span class="code-function">expire_dead_boss</span>(cub, i))</span>
+<span class="code-line">			<span class="code-keyword">continue</span> ;</span>
+<span class="code-line">		<span class="code-function">sprite_transform</span>(cub, &amp;cub->sprites[i], &amp;s);</span>
+<span class="code-line">		<span class="code-keyword">if</span> (s.depth &gt;= SP_NEAR)</span>
+<span class="code-line">			<span class="code-function">draw_sprite_cols</span>(cub, &amp;s);</span>
+<span class="code-line">		i++;</span>
+<span class="code-line">	}</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">For each frame, draw every sprite.</p>
+              <p class="tl"></p>
+              <p class="tl">i = loop index. s = the screen-space draw params for one sprite.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Nothing to draw? bail.</p>
+              <p class="tl"></p>
+              <p class="tl">Order them far → near so the painter's algorithm works.</p>
+              <p class="tl"></p>
+              <p class="tl">Walk every sprite.</p>
+              <p class="tl"></p>
+              <p class="tl">Dead boss past its timer? remove it + drop money, re-check this slot.</p>
+              <p class="tl"></p>
+              <p class="tl">Turn world (x,y) into screen rectangle + depth.</p>
+              <p class="tl">In front of the camera (not behind / not on top of us)?</p>
+              <p class="tl">Then blit its columns.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The maths bit — <code>sprite_transform</code></h2>
+        <p class="text-block">
+          This is the one piece of real linear algebra in the whole sprite system, and it's worth getting. The camera is described by two vectors: <code>dir</code> (where you're looking) and <code>plane</code> (the camera plane, perpendicular to <code>dir</code>, that sets the field of view). Together they form a 2×2 matrix that maps <em>camera space</em> → <em>world space</em>. To draw a sprite we need the opposite: world → camera. So we <strong>invert</strong> the matrix.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — sprite_draw_bonus.c:72</span>
+<pre><code><span class="code-line">	rx = sp->x - p->pos_x;</span>
+<span class="code-line">	ry = sp->y - p->pos_y;</span>
+<span class="code-line">	inv = p->plane_x * p->dir_y - p->dir_x * p->plane_y;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (inv &gt; -1e-9 &amp;&amp; inv &lt; 1e-9)</span>
+<span class="code-line">	{</span>
+<span class="code-line">		s->depth = 0.0;</span>
+<span class="code-line">		<span class="code-keyword">return</span> ;</span>
+<span class="code-line">	}</span>
+<span class="code-line">	inv = 1.0 / inv;</span>
+<span class="code-line">	tx = inv * (p->dir_y * rx - p->dir_x * ry);</span>
+<span class="code-line">	s->depth = inv * (-p->plane_y * rx + p->plane_x * ry);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (s->depth &lt; SP_NEAR)</span>
+<span class="code-line">		<span class="code-keyword">return</span> ;</span>
+<span class="code-line">	s->screen_x = (<span class="code-keyword">int</span>)((WIN_W / 2.0) * (1.0 + tx / s->depth));</span>
+<span class="code-line">	s->shade = FOG_K / (FOG_K + s->depth);</span>
+<span class="code-line">	s->tex = <span class="code-function">current_frame</span>(cub, sp, &amp;s->transp);</span>
+<span class="code-line">	<span class="code-function">sprite_rect</span>(cub, sp, s, (<span class="code-keyword">int</span>)<span class="code-function">fabs</span>(WIN_H / s->depth));</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">(rx, ry) = sprite position relative to the player.</p>
+              <p class="tl"></p>
+              <p class="tl">inv = determinant of the camera matrix.</p>
+              <p class="tl">If it's ~0 the matrix is singular (degenerate)...</p>
+              <p class="tl"></p>
+              <p class="tl">...so mark depth 0 and skip — never divide by it.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Otherwise flip it to 1/det once, reuse below.</p>
+              <p class="tl">tx = horizontal camera coordinate of the sprite.</p>
+              <p class="tl">depth = how far in front of the camera plane it sits.</p>
+              <p class="tl">Behind us or right on the lens? skip.</p>
+              <p class="tl"></p>
+              <p class="tl">Centre column + horizontal offset, scaled by depth → screen X.</p>
+              <p class="tl">Fog: near = bright (→1), far = dark (→0).</p>
+              <p class="tl">Pick the animation frame for this state (alive/dying/firing).</p>
+              <p class="tl">Full-cell on-screen size at this depth = |WIN_H / depth|.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">⚡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why <code>depth</code> is the perpendicular distance, not the straight-line distance</strong>
+            <p>Exactly like walls, the sprite's height comes from its distance <em>along the camera direction</em>, not the raw Euclidean distance. Using the perpendicular distance is what keeps sprites the same size whether they're dead-centre or near the edge of your view — no fish-eye bulge. It's the <code>plane</code>/<code>dir</code> projection that gives you that for free.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">From depth to a rectangle — <code>sprite_rect</code></h2>
+        <p class="text-block">
+          The full billboard height at a given depth is <code>|WIN_H / depth|</code> (same formula as a wall stripe). A square card centred on <code>screen_x</code> gives the left/right bounds. The clever part is the vertical anchor: pickups don't fill the column — they get shrunk to <code>PICKUP_SCALE</code> (0.40) but keep the <strong>same floor line</strong> <code>sy1</code> as a full-size alien, so ammo and meat rest on the ground instead of floating at eye level.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — sprite_col_bonus.c:16</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">sprite_rect</span>(t_cub *cub, t_sprite *sp, t_spr *s, <span class="code-keyword">int</span> full)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">if</span> (sp->type &gt;= SP_PICKUP)</span>
+<span class="code-line">		s->size = (<span class="code-keyword">int</span>)(full * PICKUP_SCALE);</span>
+<span class="code-line">	<span class="code-keyword">else</span></span>
+<span class="code-line">		s->size = full;</span>
+<span class="code-line">	s->sx0 = s->screen_x - s->size / 2;</span>
+<span class="code-line">	s->sx1 = s->screen_x + s->size / 2;</span>
+<span class="code-line">	s->sy1 = cub->horizon + full / 2;</span>
+<span class="code-line">	s->sy0 = s->sy1 - s->size;</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Build the on-screen box. `full` = full-cell size at this depth.</p>
+              <p class="tl"></p>
+              <p class="tl">Is this a pickup (ammo/meat/money), not an alien?</p>
+              <p class="tl">Then shrink it to 40% so it sits small on the floor.</p>
+              <p class="tl"></p>
+              <p class="tl">Aliens get the full height.</p>
+              <p class="tl">Left edge = centre − half width.</p>
+              <p class="tl">Right edge = centre + half width.</p>
+              <p class="tl">Bottom = the floor line of a FULL cell (shared by all sprites).</p>
+              <p class="tl">Top = bottom − actual size (small pickups start lower down).</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title"><code>sy1</code> uses <code>full / 2</code>, but <code>sy0</code> uses <code>size</code></strong>
+            <p>Read those last two lines again. The bottom always lands on the full-cell floor line, but the top is measured up by the <em>real</em> size. That asymmetry is the whole "things sit on the ground" trick — shrink a sprite and it shrinks <strong>downward toward its feet</strong>, not toward its centre.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The z-buffer — why walls hide sprites</h2>
+        <p class="text-block">
+          The raycaster left a wall depth for every screen column in <code>cub->zbuf[x]</code>. A sprite column is only drawn if the sprite is <em>nearer</em> than the wall in that exact column: <code>s->depth &lt; cub->zbuf[x]</code>. That single comparison is the entire occlusion system — an enemy behind a pillar is silently cut off column by column, and you never see it bleed through.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — sprite_col_bonus.c:57</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">draw_sprite_cols</span>(t_cub *cub, t_spr *s)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">int</span>	x;</span>
+<span class="code-line"></span>
+<span class="code-line">	<span class="code-keyword">if</span> (s->size &lt;= 0 || !s->tex)</span>
+<span class="code-line">		<span class="code-keyword">return</span> ;</span>
+<span class="code-line">	x = s->sx0;</span>
+<span class="code-line">	<span class="code-keyword">while</span> (x &lt; s->sx1)</span>
+<span class="code-line">	{</span>
+<span class="code-line">		<span class="code-keyword">if</span> (x &gt;= 0 &amp;&amp; x &lt; WIN_W &amp;&amp; s->depth &lt; cub->zbuf[x])</span>
+<span class="code-line">			<span class="code-function">draw_sprite_strip</span>(cub, s, x);</span>
+<span class="code-line">		x++;</span>
+<span class="code-line">	}</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Draw all visible columns of one transformed sprite.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">No size or no texture? nothing to do.</p>
+              <p class="tl"></p>
+              <p class="tl">Start at the sprite's left edge.</p>
+              <p class="tl">Walk to the right edge.</p>
+              <p class="tl"></p>
+              <p class="tl">On screen AND nearer than the wall in this column?</p>
+              <p class="tl">Draw this vertical strip; otherwise skip (wall wins).</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-block">
+          Inside <code>draw_sprite_strip()</code>, each screen row is mapped back to a texel with nearest-neighbour sampling (<code>tx = (x - sx0) * tex->width / size</code>), the recorded transparent colour <code>s->transp</code> is skipped (that's how the alien's outline stays see-through), and every surviving texel is dimmed by <code>shade_rgb(color, s->shade)</code> so distant sprites fog out the same way walls do.
+        </p>
+
+        <h2 class="screen-heading">Where each sprite type lives</h2>
+        <p class="text-block">
+          Sprite "type" is just an index into <code>cub->sprite_anims[]</code>, and the ordering is a <strong>contract</strong> shared across the whole bonus. Get this and you understand how one array feeds enemies, corpses, attacks, projectiles and loot.
+        </p>
+        <div class="badge-list">
+          <div class="badge-item">
+            <code class="badge-code">SP_POD … SP_POD_ALIEN (0–4)</code>
+            <span class="badge-desc">The five alive enemy roles. These also double as the walk-loop animation slot.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">SP_PICKUP (5–8)</code>
+            <span class="badge-desc">Weapon pickups. <code>SP_PICKUP + i</code> is the i-th <code>PICKUP_CHARS</code> weapon, drawn grounded.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">death_type(t) = 9 + t</code>
+            <span class="badge-desc">Play-once corpse animation for role <code>t</code> (slots 9–13).</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">firing_type(t) = 14 + t</code>
+            <span class="badge-desc">Attack/firing pose set for role <code>t</code> (slots 14–18).</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">proj_type(t) = 19 + t</code>
+            <span class="badge-desc">Flying projectile art for role <code>t</code> (slots 19–23).</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">SP_MEAT 24 · SP_MONEY 25</code>
+            <span class="badge-desc">Reward drops. <code>SP_TYPES = 26</code> total slots.</span>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The animation clock — <code>current_frame</code></h2>
+        <p class="text-block">
+          One function picks which frame to show, branching on the sprite's <code>state</code>. There's no per-sprite timer stored — it all reads off the shared wall clock <code>now_ms()</code>, which keeps every walking alien in sync for free.
+        </p>
+        <div class="icon-rows">
+          <div class="icon-row">
+            <div class="icon-circle" style="background: #2D8B55">🚶</div>
+            <div>
+              <strong>SP_ALIVE → walk loop</strong>
+              <p><code>idx = (now_ms() / ANIM_MS) % count</code>. Loops forever at 150&nbsp;ms/frame.</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: #C93B3B">💀</div>
+            <div>
+              <strong>SP_DYING → death set, once</strong>
+              <p><code>idx = (now_ms() − death_ms) / DEATH_MS</code>, <strong>clamped</strong> to the last frame. The corpse stays drawn on its final frame.</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: #D94F30">🔫</div>
+            <div>
+              <strong>SP_ATTACKING → firing set</strong>
+              <p>Same <code>DEATH_MS</code> cadence but <code>% count</code> so it cycles while the enemy is mid-attack, then the AI snaps it back to alive.</p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Pop quiz</h2>
+        <div class="quiz-container" id="quiz-module8">
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Right. <code>draw_sprites</code> reads <code>cub->zbuf[x]</code> per column, and that buffer is filled by the wall raycast. Run sprites first and every sprite would draw over the walls."
+               data-explanation-wrong="It's the z-buffer. The wall pass writes <code>cub->zbuf</code>, and the sprite column test <code>s->depth &lt; cub->zbuf[x]</code> is what hides sprites behind walls — so walls must run first.">
+            <h3 class="quiz-question">Why must the sprite pass run <em>after</em> the wall pass?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>So sprites can overwrite the ceiling and floor colours.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The wall pass fills <code>cub->zbuf</code>, which the per-column sprite z-test needs for occlusion.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>MiniLibX requires images drawn in alphabetical order.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Exactly. Sprites are sorted far→near and painted in that order, so the nearest one draws last and ends up on top. No per-pixel depth sort needed between sprites."
+               data-explanation-wrong="There's no alpha blending or second z-buffer between sprites. <code>sort_sprites</code> orders them far→near so the painter's algorithm handles sprite-vs-sprite overlap.">
+            <h3 class="quiz-question">Two enemies overlap on screen. What makes the nearer one appear in front?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>A second z-buffer just for sprites.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Alpha blending weighted by distance.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>They're sorted far→near, so the nearer one is painted last (painter's algorithm).</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="a"
+               data-explanation-right="Yes. <code>sy1</code> is pinned to the full-cell floor line while <code>sy0</code> is measured up by the actual (shrunk) size, so a pickup grows downward to its feet and rests on the ground."
+               data-explanation-wrong="Look at <code>sprite_rect</code>: <code>sy1 = horizon + full/2</code> (full-cell floor) but <code>sy0 = sy1 - size</code> (real size). The bottom is shared; only the top moves, so small sprites sit on the floor.">
+            <h3 class="quiz-question">How do small pickups end up resting on the floor instead of floating at eye level?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The bottom edge <code>sy1</code> uses the full-cell floor line; only the top <code>sy0</code> shrinks with size.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>A separate gravity simulation drops them each frame.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Their world Y coordinate is lowered when they spawn.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Correct. <code>inv</code> is the camera matrix determinant; if it's within ±1e-9 of zero the matrix is singular and dividing by it would blow up, so the function bails with depth 0."
+               data-explanation-wrong="The ±1e-9 check guards a singular camera matrix (determinant ≈ 0). Without it the next line <code>1.0 / inv</code> would divide by zero.">
+            <h3 class="quiz-question">What is the <code>if (inv &gt; -1e-9 &amp;&amp; inv &lt; 1e-9)</code> guard protecting against?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Sprites that are too far away to bother drawing.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>A degenerate (singular) camera matrix — dividing by a near-zero determinant.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Transparent texels that should be skipped.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module8')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module8')">Try Again</button>
+        </div>
+
+        <p class="module-outro">Now that we can draw a card in the world, let's fill it with monsters — next: spawning enemies from the map and the Blake Stone bestiary.</p>
+      </div>
+    </section>

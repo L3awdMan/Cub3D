@@ -1,0 +1,306 @@
+    <section class="module" id="module-4">
+      <div class="module-inner">
+        <p class="module-eyebrow">Module 4 · Mouse look</p>
+        <h1 class="module-title">Catch every pixel of horizontal travel. Spin the view.</h1>
+        <p class="module-lede">
+          Mouse-look in cub3D is three small ideas glued together. The motion hook just collects raw pointer movement into a counter. A focus guard prevents giant jumps when you alt-tab back. The per-frame loop drains the counter and feeds it to the same <code>rotate_vectors</code> the keyboard uses. No cursor warp, no cursor hide, no DPI surprises.
+        </p>
+
+        <h2 class="screen-heading">The design constraint: don't break the X close button</h2>
+        <p class="text-block">
+          A lot of FPS engines hide the cursor and re-center it every frame so they can read relative motion. That breaks two things on Linux/MiniLibX: you can't click the window's <kbd>×</kbd> to quit, and refocus from the terminal sends one wild motion event with hundreds of pixels of "delta" from wherever the cursor sat in the meantime.
+        </p>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🖱️</div>
+          <div class="callout-content">
+            <strong class="callout-title">Three rules</strong>
+            <p><strong>1.</strong> Never warp the cursor. <strong>2.</strong> Never hide the cursor. <strong>3.</strong> The first motion after focus only seeds the baseline — it does not rotate.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">State lives in <code>t_cub</code></h2>
+        <div class="badge-list">
+          <div class="badge-item">
+            <code class="badge-code">mouse_last_x</code>
+            <span class="badge-desc">The X coordinate of the previous MotionNotify event. Used to compute the delta.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">mouse_dx</code>
+            <span class="badge-desc">Accumulated horizontal pixels since the last frame. Drained to zero every frame.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">mouse_ready</code>
+            <span class="badge-desc">Latch. 0 means "next motion event just seeds the baseline." Cleared on focus loss.</span>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The motion hook accumulates deltas</h2>
+        <p class="text-block">
+          MotionNotify (X event 6) fires for every pixel the mouse moves over the window. The hook does nothing fancy — it just subtracts the previous X from the current X and adds the result to the running total.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — mouse_bonus.c:32</span>
+<pre><code><span class="code-line"><span class="code-keyword">int</span>	<span class="code-function">mouse_move</span>(<span class="code-keyword">int</span> x, <span class="code-keyword">int</span> y, <span class="code-keyword">void</span> *param)</span>
+<span class="code-line">{</span>
+<span class="code-line">	t_cub	*cub;</span>
+<span class="code-line"></span>
+<span class="code-line">	(<span class="code-keyword">void</span>)y;</span>
+<span class="code-line">	cub = (t_cub *)param;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (x &lt; 0 || x &gt;= WIN_W)</span>
+<span class="code-line">		<span class="code-keyword">return</span> (0);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (!cub-&gt;mouse_ready)</span>
+<span class="code-line">	{</span>
+<span class="code-line">		cub-&gt;mouse_ready = 1;</span>
+<span class="code-line">		cub-&gt;mouse_last_x = x;</span>
+<span class="code-line">		<span class="code-keyword">return</span> (0);</span>
+<span class="code-line">	}</span>
+<span class="code-line">	cub-&gt;mouse_dx += (x - cub-&gt;mouse_last_x);</span>
+<span class="code-line">	cub-&gt;mouse_last_x = x;</span>
+<span class="code-line">	<span class="code-keyword">return</span> (0);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">X11 calls this for every pixel of mouse movement inside the window.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Vertical movement is ignored — only horizontal turns the view.</p>
+              <p class="tl"></p>
+              <p class="tl">Out-of-window event (happens during refocus) → ignore.</p>
+              <p class="tl"></p>
+              <p class="tl">First event since focus came back?</p>
+              <p class="tl"></p>
+              <p class="tl">Arm the latch.</p>
+              <p class="tl">Seed the baseline. No rotation this time.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Normal path: add the delta to the per-frame accumulator.</p>
+              <p class="tl">Slide the baseline forward.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Focus events reset the latch</h2>
+        <p class="text-block">
+          When you alt-tab to your terminal, your cursor moves around without the cub3D window seeing it. The instant you alt-tab back, X11 sends one MotionNotify whose delta from <code>mouse_last_x</code> could be hundreds of pixels — that would spin the view violently. FocusIn / FocusOut both clear <code>mouse_ready</code> so the next event is treated as a fresh baseline instead of a delta.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — mouse_bonus.c:57</span>
+<pre><code><span class="code-line"><span class="code-keyword">int</span>	<span class="code-function">focus_in</span>(<span class="code-keyword">void</span> *param)</span>
+<span class="code-line">{</span>
+<span class="code-line">	t_cub	*cub;</span>
+<span class="code-line"></span>
+<span class="code-line">	cub = (t_cub *)param;</span>
+<span class="code-line">	cub-&gt;mouse_ready = 0;</span>
+<span class="code-line">	cub-&gt;mouse_dx = 0;</span>
+<span class="code-line">	<span class="code-keyword">return</span> (0);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">X11 calls this when the cub3D window gains focus.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Disarm the latch so the next motion seeds, not rotates.</p>
+              <p class="tl">Throw away any leftover unprocessed delta.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The per-frame drain</h2>
+        <p class="text-block">
+          Once per frame, <code>apply_mouse_look</code> turns the accumulated pixel count into a rotation. Reusing <code>rotate_vectors</code> means mouse and keyboard turning are mathematically identical — same matrix, same outcome.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — mouse_bonus.c:88</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">apply_mouse_look</span>(t_cub *cub)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">if</span> (!cub-&gt;mouse_ready || cub-&gt;mouse_dx == 0)</span>
+<span class="code-line">		<span class="code-keyword">return</span> ;</span>
+<span class="code-line">	<span class="code-function">rotate_vectors</span>(&amp;cub-&gt;player, (<span class="code-keyword">double</span>)cub-&gt;mouse_dx * MOUSE_SENS);</span>
+<span class="code-line">	cub-&gt;mouse_dx = 0;</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Called from loop_hook every frame.</p>
+              <p class="tl"></p>
+              <p class="tl">No baseline yet, or no movement to apply → bail.</p>
+              <p class="tl"></p>
+              <p class="tl">Rotate by (pixels) × (radians per pixel). MOUSE_SENS = 0.0025.</p>
+              <p class="tl">Drain the accumulator — next frame starts fresh.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">⚙️</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why accumulate, not "use last event"?</strong>
+            <p>Multiple MotionNotify events can land between two frames — a fast flick might fire 30 events in 16 ms. If you only used the most recent delta you'd throw away 29/30 of the motion. The accumulator captures all of it; the per-frame drain rotates by the total.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Wiring it all up</h2>
+        <p class="text-block">
+          <code>register_mouse</code> hooks three X11 events: MotionNotify (6), FocusIn (9), FocusOut (10). The masks <code>1L &lt;&lt; 6</code> and <code>1L &lt;&lt; 21</code> are X11's <code>PointerMotionMask</code> and <code>FocusChangeMask</code>.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — mouse_bonus.c:103</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">register_mouse</span>(t_cub *cub)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-function">mlx_hook</span>(cub-&gt;win, 6, 1L &lt;&lt; 6, mouse_move, cub);</span>
+<span class="code-line">	<span class="code-function">mlx_hook</span>(cub-&gt;win, 9, 1L &lt;&lt; 21, focus_in, cub);</span>
+<span class="code-line">	<span class="code-function">mlx_hook</span>(cub-&gt;win, 10, 1L &lt;&lt; 21, focus_out, cub);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Called at startup from register_hooks.</p>
+              <p class="tl"></p>
+              <p class="tl">Subscribe to MotionNotify with PointerMotionMask.</p>
+              <p class="tl">Subscribe to FocusIn with FocusChangeMask.</p>
+              <p class="tl">Subscribe to FocusOut with the same mask.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">One frame of mouse-look, narrated</h2>
+        <div class="chat-window" id="chat-mouse">
+          <div class="chat-messages">
+            <div class="chat-message" data-msg="0" data-sender="x11" style="display:none">
+              <div class="chat-avatar" style="background: #6E6E8C">X</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: #6E6E8C">X11</span>
+                <p>Pointer at x = 640. <code>mouse_move(640, ...)</code>.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="mouse" style="display:none">
+              <div class="chat-avatar" style="background: #D94F30">M</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: #D94F30">mouse_move</span>
+                <p>mouse_ready is 1, mouse_last_x is 632. Delta = +8 px. mouse_dx is now 8.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="x11" style="display:none">
+              <div class="chat-avatar" style="background: #6E6E8C">X</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: #6E6E8C">X11</span>
+                <p>Pointer at x = 648. <code>mouse_move(648, ...)</code>.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="mouse" style="display:none">
+              <div class="chat-avatar" style="background: #D94F30">M</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: #D94F30">mouse_move</span>
+                <p>Delta = +8 more px. mouse_dx is now 16.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="4" data-sender="loop" style="display:none">
+              <div class="chat-avatar" style="background: #2A7B9B">L</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: #2A7B9B">loop_hook</span>
+                <p>Frame tick! Calling apply_mouse_look.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="5" data-sender="look" style="display:none">
+              <div class="chat-avatar" style="background: #D4A843">A</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: #D4A843">apply_mouse_look</span>
+                <p>rotate_vectors(player, 16 × 0.0025 = +0.04 rad). mouse_dx → 0.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="6" data-sender="player" style="display:none">
+              <div class="chat-avatar" style="background: #2D8B55">P</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: #2D8B55">player</span>
+                <p>dir and plane rotate ~2.3°. Next raycast pass will reflect the new facing.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-typing" id="chat-mouse-typing" style="display:none">
+            <div class="chat-avatar" id="chat-mouse-typing-avatar">?</div>
+            <div class="chat-typing-dots">
+              <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+            </div>
+          </div>
+
+          <div class="chat-controls">
+            <button class="btn chat-next-btn">Next Message</button>
+            <button class="btn chat-all-btn">Play All</button>
+            <button class="btn chat-reset-btn">Replay</button>
+            <span class="chat-progress"></span>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Pop quiz</h2>
+        <div class="quiz-container" id="quiz-module4">
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Yes. Without the latch, the FocusIn arrives, the cursor's been wandering for who-knows-how-long, and the first delta is huge."
+               data-explanation-wrong="The cursor staying visible is unrelated to spin protection — the latch is what prevents the jump.">
+            <h3 class="quiz-question">You alt-tab to your terminal, scroll a wiki page, alt-tab back. Why doesn't the view spin wildly?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Because the cursor stayed visible throughout.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>FocusIn clears <code>mouse_ready</code>; the first event after refocus only seeds the baseline.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>X11 stops sending events when focus is lost.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Right. Hiding/warping is what breaks the window's close button on MiniLibX — the bonus skips both for that reason."
+               data-explanation-wrong="Sensitivity is a constant you can tune; the design choice was specifically to keep the X close button usable.">
+            <h3 class="quiz-question">Why doesn't <code>register_mouse</code> call <code>mlx_mouse_hide</code> or warp the cursor back to center?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Because warping cursors is slow.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Because that makes MOUSE_SENS values harder to tune.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>So the window's X close button stays clickable.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="a"
+               data-explanation-right="Yes. The accumulator captures all motion between frames; a single 'last event' read would lose everything else."
+               data-explanation-wrong="Order doesn't matter for the delta sum, and threading isn't involved — MLX is single-threaded.">
+            <h3 class="quiz-question">A fast flick fires 20 MotionNotify events in one 16ms frame. Why use an accumulator?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>So none of the motion is dropped — all 20 deltas sum into the per-frame rotation.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>To ensure events are processed in order.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>To make the hook thread-safe.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module4')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module4')">Try Again</button>
+        </div>
+
+        <p class="module-outro">Next: the doors — animated, with rays that pass through them mid-slide.</p>
+      </div>
+    </section>

@@ -1,0 +1,211 @@
+    <section class="module" id="module-12">
+      <div class="module-inner">
+        <p class="module-eyebrow">Module 12 · HUD &amp; feedback</p>
+        <h1 class="module-title">Everything the player reads without thinking: bars, a counter, and two coloured flashes.</h1>
+        <p class="module-lede">
+          The HUD is drawn last, straight onto the finished image buffer, so it always sits on top of the 3D world. None of it is clever 3D — it's rectangles, a pre-rendered panel, and a couple of full-screen tints. But the layering order and the data each piece reads matter, and that's exactly what a corrector will poke at. (The circular minimap has its own module — Module 6.)
+        </p>
+
+        <h2 class="screen-heading">Health bars — fill a box, colour by ratio</h2>
+        <p class="text-block">
+          <code>draw_health_bars()</code> always draws the player bar (bottom-left, 260×24&nbsp;px) and then conditionally the boss bar. The drawing primitive <code>draw_hud_bar()</code> is dead simple: paint a dark background box, then paint a coloured fill box whose width is <code>box_width × ratio</code>.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — hud_bar_draw_bonus.c:42</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">draw_hud_bar</span>(t_cub *cub, <span class="code-keyword">int</span> box[4], <span class="code-keyword">double</span> ratio, <span class="code-keyword">int</span> boss)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">if</span> (ratio &lt; 0)</span>
+<span class="code-line">		ratio = 0;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (ratio &gt; 1)</span>
+<span class="code-line">		ratio = 1;</span>
+<span class="code-line">	<span class="code-function">fill_rect</span>(cub, box, 0x171820);</span>
+<span class="code-line">	size[0] = (<span class="code-keyword">int</span>)(box[2] * ratio);</span>
+<span class="code-line">	size[1] = box[3];</span>
+<span class="code-line">	<span class="code-function">set_box</span>(fill, box[0], box[1], size);</span>
+<span class="code-line">	<span class="code-function">fill_rect</span>(cub, fill, <span class="code-function">bar_color</span>(ratio, boss));</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Draw one bar: box = [x, y, w, h], ratio = fill fraction.</p>
+              <p class="tl"></p>
+              <p class="tl">Clamp ratio into [0, 1]...</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Paint the dark empty track first.</p>
+              <p class="tl">Fill width = full width × ratio.</p>
+              <p class="tl">Same height as the track.</p>
+              <p class="tl">Build the fill box at the track's origin.</p>
+              <p class="tl">Paint it in the ratio-dependent colour (green/yellow/red).</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="badge-list">
+          <div class="badge-item"><code class="badge-code">ratio &gt; 0.50</code><span class="badge-desc">Player bar green (<code>0x35C85A</code>).</span></div>
+          <div class="badge-item"><code class="badge-code">0.25 &lt; ratio ≤ 0.50</code><span class="badge-desc">Player bar yellow (<code>0xD8B22A</code>).</span></div>
+          <div class="badge-item"><code class="badge-code">ratio ≤ 0.25</code><span class="badge-desc">Player bar red (<code>0xD83232</code>) — danger.</span></div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">The boss bar only appears when it should</strong>
+            <p><code>draw_boss_bar()</code> has two gates: the player must be standing in a boss cell (<code>player_in_boss_room()</code> checks the grid char is <code>'Z'</code>), <strong>and</strong> a live <code>SP_FLUID</code> boss must still exist in the sprite list. Its ratio is <code>boss.hp / BOSS_HP</code>, so it drains one chunk per shot you land. No boss, or you've left the room → no bar.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The "enemies remaining" counter</h2>
+        <p class="text-block">
+          This is a neat reuse of art: 24 pre-rendered panel frames (<code>lives_0</code> … <code>lives_23</code>) sit in the black slot of the floor HUD. The drawer just blits the frame indexed by <code>cub->lives</code>. The count is seeded from the floor's killable enemies and ticks down on each kill (you saw <code>cub->lives--</code> in <code>shoot_hitscan</code>).
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — lives_hud_bonus.c:36</span>
+<pre><code><span class="code-line"><span class="code-keyword">int</span>	<span class="code-function">count_enemies</span>(t_cub *cub)</span>
+<span class="code-line">{</span>
+<span class="code-line">	n = 0;</span>
+<span class="code-line">	i = -1;</span>
+<span class="code-line">	<span class="code-keyword">while</span> (++i &lt; cub->sprite_count)</span>
+<span class="code-line">		<span class="code-keyword">if</span> (cub->sprites[i].type &lt; SP_PICKUP)</span>
+<span class="code-line">			n++;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (n &gt; LIVES_MAX)</span>
+<span class="code-line">		n = LIVES_MAX;</span>
+<span class="code-line">	<span class="code-keyword">return</span> (n);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">How many killable enemies are on this floor?</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Walk the sprite list...</p>
+              <p class="tl">...counting only enemies (type below SP_PICKUP)...</p>
+              <p class="tl">...so pickups and rewards don't inflate it.</p>
+              <p class="tl">Cap at 23 so the result always indexes a real frame...</p>
+              <p class="tl">...(there are only lives_0..lives_23).</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">⚡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why <code>type &lt; SP_PICKUP</code> is the "is it an enemy?" test</strong>
+            <p>Remember the type ordering contract from Module 8: roles 0–4 are the only alive enemies, and everything from <code>SP_PICKUP</code> (5) upward is loot or projectile art. So a single comparison cleanly separates "things that count as lives" from "things that don't". The cap at <code>LIVES_MAX</code> guarantees the index never runs off the 24-frame array.</p>
+          </div>
+        </div>
+
+        <p class="text-block">
+          The floor HUD panel itself (<code>floor_hud</code>) is one XPM per floor, blitted across the top of the screen and scaled to <code>WIN_W</code>. The lives counter draws into a black slot inside it, and the boss bar is positioned just below it (<code>hud_bottom_y()</code> measures the panel's scaled height). The crosshair is the 9-pixel cross from <code>shade.c</code> (Module 7), drawn dead last so nothing covers the reticle.
+        </p>
+
+        <h2 class="screen-heading">The two flashes — post-process vignettes</h2>
+        <p class="text-block">
+          Both flashes run <em>after</em> the whole frame is drawn, tinting <code>cub->img</code> directly. They're full-screen pixel scans, but they only run during the brief fade — when no flash is active the function returns immediately, so there's no cost in normal play.
+        </p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid #C93B3B">
+            <div class="pattern-icon" style="background: #C93B3B">🩸</div>
+            <h4 class="pattern-title">Damage flash</h4>
+            <p class="pattern-desc">Reddens the screen, strongest at the corners (<code>edge_factor</code> = squared distance from centre). Alpha ramps from <code>HURT_MAX_A</code> to 0 over <code>HURT_FADE_MS</code> since <code>player.hurt_ms</code>.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid #2D8B55">
+            <div class="pattern-icon" style="background: #2D8B55">💚</div>
+            <h4 class="pattern-title">Pickup flash</h4>
+            <p class="pattern-desc">Softly <em>adds</em> green (meat) or gold (money) in a <code>FLASH_EDGE_PX</code> border band only. Fades from <code>FLASH_MAX_A</code> over <code>FLASH_FADE_MS</code> since <code>flash_ms</code>.</p>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">The flashes are mutually exclusive — newest wins</strong>
+            <p>You can't be red and green at the same time. The damage flash bails if <code>flash_ms &gt; hurt_ms</code>; the pickup flash bails if <code>hurt_ms &gt;= flash_ms</code>. Whichever event happened most recently is the one that draws. A clean way to arbitrate two effects that share the screen without blending into mud.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Reward pickups close the loop</h2>
+        <p class="text-block">
+          Kills drop loot (Module 11): a normal enemy drops <code>SP_MEAT</code>, the boss drops <code>SP_MONEY</code>. <code>collect_rewards()</code> runs each frame, and when you walk within <code>REWARD_PICK_DIST</code> of one, <code>reward_effect()</code> applies it: meat heals <code>MEAT_HEAL</code> (clamped at full) and flashes green; money flashes gold.
+        </p>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">🏆</div>
+          <div class="callout-content">
+            <strong class="callout-title">Grabbing the money bag is the win condition</strong>
+            <p>Look closely at <code>reward_effect</code>: collecting <code>SP_MONEY</code> doesn't just flash gold — on floor 3 it starts the final cutscene (<code>CUT_END_F3</code>), and on any other floor it calls <code>enter_state(cub, GS_WIN)</code>. So the whole game loop is: kill the boss → it drops money → you grab it → you win the floor. That hand-off into the game-state machine is the subject of the next module.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Pop quiz</h2>
+        <div class="quiz-container" id="quiz-module12">
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Right. <code>draw_boss_bar</code> requires BOTH: the player is in a <code>'Z'</code> boss cell, and a live <code>SP_FLUID</code> still exists in the sprite list."
+               data-explanation-wrong="Two gates must pass: the player stands on a <code>'Z'</code> cell AND a live boss sprite exists. Either failing hides the bar.">
+            <h3 class="quiz-question">When does the boss health bar appear?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Always, from the start of every floor.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Only after the player fires the first shot.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>When the player is in a <code>'Z'</code> boss cell AND a live <code>SP_FLUID</code> boss exists.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. <code>count_enemies</code> counts sprites with <code>type &lt; SP_PICKUP</code> and caps at <code>LIVES_MAX</code> (23) so the value always indexes one of the 24 lives frames."
+               data-explanation-wrong="The cap at <code>LIVES_MAX</code> keeps the count a valid index into the 24-frame lives art — without it a busy floor could read past the array.">
+            <h3 class="quiz-question">Why is the enemy count capped at <code>LIVES_MAX</code>?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>To limit how many enemies can spawn per floor.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>So the count always indexes a valid lives frame (there are only 0..23).</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Because the HUD slot can only fit two digits.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="a"
+               data-explanation-right="Right. Both flashes are post-process tints on <code>cub->img</code> guarded by a timestamp comparison, so only the more recent of hurt_ms / flash_ms draws — never both."
+               data-explanation-wrong="They never overlap: each checks which timestamp (hurt_ms vs flash_ms) is newer and the older one bails. Newest event wins.">
+            <h3 class="quiz-question">Can the red damage flash and the green heal flash show at the same time?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>No — whichever of <code>hurt_ms</code> / <code>flash_ms</code> is newer draws; the other bails.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Yes — they alpha-blend together into a yellow tint.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Yes — the damage flash always wins and overwrites the heal flash.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Correct. The flash functions return immediately when their alpha is 0, so the expensive full-screen pixel scan only runs during the short fade after an event."
+               data-explanation-wrong="They early-return when no flash is active (alpha 0), so the per-pixel scan only happens during the brief fade — not every frame.">
+            <h3 class="quiz-question">The flashes scan every pixel. Why isn't that a constant performance hit?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>They run on the GPU.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>They early-return when alpha is 0, so the scan only runs during the brief fade.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>They only scan every other frame.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module12')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module12')">Try Again</button>
+        </div>
+
+        <p class="module-outro">Grabbing the money said "you win". But what does winning actually <em>do</em>? Next: the game-state machine, menus, floor progression and cutscenes.</p>
+      </div>
+    </section>

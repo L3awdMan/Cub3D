@@ -1,0 +1,314 @@
+    <section class="module" id="module-14">
+      <div class="module-inner">
+        <p class="module-eyebrow">Module 14 · Format &amp; wiring</p>
+        <h1 class="module-title">The map file that feeds it all, and the single frame that ties every system together.</h1>
+        <p class="module-lede">
+          We've built every subsystem. This module zooms back out: what the bonus <code>.cub</code> parser actually accepts (it's stricter and richer than the mandatory one), how the Blake Stone assets are laid out, and — the payoff — a single annotated trip through one frame, where you'll recognise every function from the last six modules firing in order.
+        </p>
+
+        <h2 class="screen-heading">Parser extensions over the mandatory format</h2>
+        <p class="text-block">
+          The bonus keeps the mandatory elements (<code>NO/SO/WE/EA</code> textures, <code>F</code>/<code>C</code> colours) but adds tolerance and one new directive. First, identifiers may be followed by <strong>any</strong> whitespace, not just a single space — so a tab-separated <code>NO\t./tex.xpm</code> is now valid.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — parse_elements.c:10</span>
+<pre><code><span class="code-line"><span class="code-keyword">static</span> <span class="code-keyword">int</span>	<span class="code-function">matches_id</span>(<span class="code-keyword">const</span> <span class="code-keyword">char</span> *s, <span class="code-keyword">const</span> <span class="code-keyword">char</span> *id, <span class="code-keyword">int</span> len)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">return</span> (<span class="code-function">ft_strncmp</span>(s, id, len) == 0 &amp;&amp; <span class="code-function">ft_isspace</span>((<span class="code-keyword">unsigned char</span>)s[len]));</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Does the line start with identifier `id`...</p>
+              <p class="tl"></p>
+              <p class="tl">...and is the very next char whitespace? (space OR tab) Then it matches.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">📝</div>
+          <div class="callout-content">
+            <strong class="callout-title">Order matters in <code>identify_element</code></strong>
+            <p><code>FLOOR</code> is checked <em>before</em> <code>F</code>. If <code>F</code> came first, <code>matches_id(line, "F", 1)</code> would never fire for a <code>FLOOR</code> line — wait, actually it would fail because the char after <code>F</code> isn't whitespace (<code>FLOOR</code> → <code>F</code> followed by <code>L</code>). The explicit <code>FLOOR</code>-first ordering plus the whitespace check is what keeps the single-letter <code>F</code>/<code>C</code> colours from swallowing longer keywords.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The <code>FLOOR &lt;n&gt;</code> directive</h2>
+        <p class="text-block">
+          This is the bonus's custom element. It sets <code>cub->floor</code>, which (Module 9) decides the entire per-floor art table. The subject explicitly permits extending the scene format for the bonus.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — parse_elements.c:46</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">parse_floor</span>(t_cub *cub, <span class="code-keyword">char</span> *line)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">while</span> (*line &amp;&amp; <span class="code-function">ft_isspace</span>(*line))</span>
+<span class="code-line">		line++;</span>
+<span class="code-line">	line += 5;</span>
+<span class="code-line">	<span class="code-keyword">while</span> (*line &amp;&amp; <span class="code-function">ft_isspace</span>(*line))</span>
+<span class="code-line">		line++;</span>
+<span class="code-line">	n = <span class="code-function">ft_atoi</span>(line);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (n &lt; 1)</span>
+<span class="code-line">		<span class="code-function">exit_error</span>(cub, <span class="code-string">"Invalid FLOOR number"</span>);</span>
+<span class="code-line">	cub->floor = n;</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Parse "FLOOR &lt;n&gt;".</p>
+              <p class="tl"></p>
+              <p class="tl">Skip leading whitespace...</p>
+              <p class="tl"></p>
+              <p class="tl">...skip the 5 letters of "FLOOR"...</p>
+              <p class="tl">...skip the whitespace before the number.</p>
+              <p class="tl"></p>
+              <p class="tl">Read the number.</p>
+              <p class="tl">Below 1 is nonsense → hard error.</p>
+              <p class="tl"></p>
+              <p class="tl">Store it — this selects the floor's art/theme.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The element gate — <code>parsed_flags</code> &amp; <code>FLAG_ALL</code></h2>
+        <p class="text-block">
+          <code>parse_file</code> reads lines and <code>dispatch_line</code> routes each to its parser. Crucially, the first map line is only accepted once <strong>all</strong> elements are present.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — parse_file.c:48</span>
+<pre><code><span class="code-line">	<span class="code-keyword">else if</span> (id == ELEM_FLOOR)</span>
+<span class="code-line">		<span class="code-function">parse_floor</span>(cub, line);</span>
+<span class="code-line">	<span class="code-keyword">else if</span> (<span class="code-function">is_map_line</span>(line))</span>
+<span class="code-line">	{</span>
+<span class="code-line">		<span class="code-keyword">if</span> (cub->map.parsed_flags != FLAG_ALL)</span>
+<span class="code-line">			<span class="code-function">exit_error</span>(cub, <span class="code-string">"Map found before all elements"</span>);</span>
+<span class="code-line">		<span class="code-function">store_map_lines</span>(cub, line, *fd);</span>
+<span class="code-line">	}</span>
+<span class="code-line">	<span class="code-keyword">else</span></span>
+<span class="code-line">		<span class="code-function">exit_error</span>(cub, <span class="code-string">"Unknown identifier in config"</span>);</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">A FLOOR directive →</p>
+              <p class="tl">...set the floor number.</p>
+              <p class="tl">A line that looks like the map (starts 1/0/N/S/E/W)?</p>
+              <p class="tl"></p>
+              <p class="tl">All six required elements must be set first...</p>
+              <p class="tl">...otherwise reject (no map before config).</p>
+              <p class="tl">Good → start reading the map grid.</p>
+              <p class="tl"></p>
+              <p class="tl">Anything else is junk →</p>
+              <p class="tl">...hard error.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">⚡</div>
+          <div class="callout-content">
+            <strong class="callout-title"><code>FLAG_ALL = 63</code> — and <code>FLOOR</code> is <em>not</em> in it</strong>
+            <p>63 is binary <code>111111</code> — bits 0–5: the four textures plus <code>F</code> and <code>C</code>. Notice <code>parse_floor</code> never touches <code>parsed_flags</code>, so the <code>FLOOR</code> directive is <strong>optional</strong> and defaults to 1. A map with no <code>FLOOR</code> line still parses fine; it just runs as floor 1. After the map is stored, <code>post_map_check</code> rejects any further non-blank line as "Content after map" — no trailing junk allowed.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Map tile vocabulary</h2>
+        <div class="badge-list">
+          <div class="badge-item"><code class="badge-code">0</code><span class="badge-desc">Walkable floor.</span></div>
+          <div class="badge-item"><code class="badge-code">1 4 5 6</code><span class="badge-desc">Walls (<code>WALL_CHARS</code>); 4/5/6 use the accent wall textures.</span></div>
+          <div class="badge-item"><code class="badge-code">N S E W</code><span class="badge-desc">Player spawn + initial facing.</span></div>
+          <div class="badge-item"><code class="badge-code">D</code><span class="badge-desc">Door cell (sliding, toggled with E).</span></div>
+          <div class="badge-item"><code class="badge-code">2 3 A F B</code><span class="badge-desc">Enemies: pod, boss, scientist, fluid-alien, pod-alien.</span></div>
+          <div class="badge-item"><code class="badge-code">7 8 9 P</code><span class="badge-desc">Weapon pickups (<code>PICKUP_CHARS</code>).</span></div>
+          <div class="badge-item"><code class="badge-code">Z</code><span class="badge-desc">Boss-room cell — makes the boss health bar appear.</span></div>
+        </div>
+
+        <h2 class="screen-heading">The Blake Stone asset tree</h2>
+        <p class="text-block">
+          Everything lives under <code>./textures/blake_stone_xpm/</code>, and the naming is predictable enough that the floor-art tables build paths by convention:
+        </p>
+        <div class="icon-rows">
+          <div class="icon-row">
+            <div class="icon-circle" style="background: #D94F30">👾</div>
+            <div><strong>sprites/enemies_and_bosses/</strong><p>Per-role, per-floor folders (e.g. <code>enemy_floor1/walking/…_f00.xpm</code>), each split into walking / firing / death sequences.</p></div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: #2A7B9B">💥</div>
+            <div><strong>sprites/projectiles/</strong><p>electro_ball, spider_mutant_goo_blast, acid_dragon_gunk_shot, plasma_discharge_grenade, snotball, beam_ring — each a frame sequence.</p></div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: #2D8B55">🔫</div>
+            <div><strong>sprites/weapon_hud/ &amp; sprites/guns/</strong><p>Five 5-frame weapon HUD animations; <code>guns/gun_2..5.xpm</code> are the floor pickup sprites.</p></div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: #D8B22A">❤️</div>
+            <div><strong>sprites/health_money/, lives_counter/, floor_hud/, gameover_win_ui/</strong><p>The reward art, the 24 lives frames, per-floor HUD panels, and the dead/win/game-over overlays.</p></div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: #8C1020">🧱</div>
+            <div><strong>walls/ &amp; floors_ceilings/</strong><p>Wall faces (incl. the door panel) and the 64×64 floor/ceiling tiles sampled by the floor-cast.</p></div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: #444">🎬</div>
+            <div><strong>ui_screens/ &amp; cutscenes/</strong><p>The intro/menu/difficulty screens and the three numbered cutscene frame sequences.</p></div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">One frame, start to finish</h2>
+        <p class="text-block">
+          Here's the whole game in two functions. <code>loop_hook()</code> is MiniLibX's per-frame callback: it updates the right things for the current state, then renders. This is where every module you've read plugs in.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — render.c:61 (update_world)</span>
+<pre><code><span class="code-line"><span class="code-keyword">static</span> <span class="code-keyword">void</span>	<span class="code-function">update_world</span>(t_cub *cub)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-function">apply_movement</span>(cub);</span>
+<span class="code-line">	<span class="code-function">apply_rotation</span>(cub);</span>
+<span class="code-line">	<span class="code-function">apply_mouse_look</span>(cub);</span>
+<span class="code-line">	<span class="code-function">weapon_pickup</span>(cub);</span>
+<span class="code-line">	<span class="code-function">collect_rewards</span>(cub);</span>
+<span class="code-line">	<span class="code-function">update_doors</span>(cub);</span>
+<span class="code-line">	<span class="code-function">update_horizon</span>(cub);</span>
+<span class="code-line">	<span class="code-function">update_enemies</span>(cub);</span>
+<span class="code-line">	<span class="code-function">update_projectiles</span>(cub);</span>
+<span class="code-line">	<span class="code-function">update_weapon</span>(cub);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Simulate one tick of the world (only while GS_PLAYING).</p>
+              <p class="tl"></p>
+              <p class="tl">Move / rotate / mouse-look the player (Modules 3–4).</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Grab any weapon you're standing on (Module 11).</p>
+              <p class="tl">Grab any meat/money you're standing on (Module 12).</p>
+              <p class="tl">Advance door slide animations (Module 5).</p>
+              <p class="tl">Update the head-bob horizon (Module 7).</p>
+              <p class="tl">Run enemy AI: chase + fire (Module 10).</p>
+              <p class="tl">Fly + expire projectiles (Module 11).</p>
+              <p class="tl">Tick the weapon fire clock (Module 11).</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — render.c:24 (render_frame, playing branch)</span>
+<pre><code><span class="code-line">	<span class="code-function">cast_all_rays</span>(cub);</span>
+<span class="code-line">	<span class="code-function">draw_sprites</span>(cub);</span>
+<span class="code-line">	<span class="code-function">draw_projectiles</span>(cub);</span>
+<span class="code-line">	<span class="code-function">draw_minimap</span>(cub);</span>
+<span class="code-line">	<span class="code-function">draw_floor_hud</span>(cub);</span>
+<span class="code-line">	<span class="code-function">draw_lives_hud</span>(cub);</span>
+<span class="code-line">	<span class="code-function">draw_weapon</span>(cub);</span>
+<span class="code-line">	<span class="code-function">draw_damage_flash</span>(cub);</span>
+<span class="code-line">	<span class="code-function">draw_pickup_flash</span>(cub);</span>
+<span class="code-line">	<span class="code-function">draw_health_bars</span>(cub);</span>
+<span class="code-line">	<span class="code-function">draw_crosshair</span>(cub);</span>
+<span class="code-line">	<span class="code-function">draw_endgame</span>(cub);</span>
+<span class="code-line">	<span class="code-function">mlx_put_image_to_window</span>(cub->mlx, cub->win, cub->img.id, 0, 0);</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Walls first — this fills the z-buffer (Module 2).</p>
+              <p class="tl">Sprites, z-tested against that buffer (Module 8–9).</p>
+              <p class="tl">Projectiles, same pipeline (Module 11).</p>
+              <p class="tl">Minimap overlay (Module 6).</p>
+              <p class="tl">Floor HUD panel (Module 12)...</p>
+              <p class="tl">...with the lives counter inside it.</p>
+              <p class="tl">Weapon in hand (Module 11).</p>
+              <p class="tl">Red damage vignette, if hurt recently (Module 12).</p>
+              <p class="tl">Green/gold pickup vignette (Module 12).</p>
+              <p class="tl">Health + boss bars (Module 12).</p>
+              <p class="tl">Crosshair — always on top (Module 7).</p>
+              <p class="tl">Dead/win overlay, if not playing (Module 13).</p>
+              <p class="tl">One single blit of the whole image to the window.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">The order IS the architecture</strong>
+            <p>Read those two lists top-to-bottom and the dependencies fall out: walls before sprites (z-buffer), sprites before projectiles (shared depth), world before HUD (overlay on top), flashes before bars (vignette under the UI), everything before the crosshair, then exactly one <code>mlx_put_image_to_window</code>. The state dispatch in <code>loop_hook</code> means cutscene and menu states swap in their own draw and skip all of this — one integer, the whole program.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Pop quiz</h2>
+        <div class="quiz-container" id="quiz-module14">
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Right. <code>FLAG_ALL</code> is 63 (bits 0–5 = NO/SO/WE/EA/F/C). <code>parse_floor</code> never sets a flag, so <code>FLOOR</code> is optional and defaults to 1."
+               data-explanation-wrong="<code>FLOOR</code> isn't part of <code>FLAG_ALL</code> (63 = the 4 textures + F + C). It's optional and defaults to floor 1.">
+            <h3 class="quiz-question">Is a <code>FLOOR</code> directive required in every bonus <code>.cub</code> file?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Yes — the map is rejected without it.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Yes — it's bit 6 of <code>FLAG_ALL</code>.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>No — it's optional (not in <code>FLAG_ALL</code>) and defaults to floor 1.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="a"
+               data-explanation-right="Exactly. <code>cast_all_rays</code> runs first and fills <code>cub->zbuf</code>; every later pass (sprites, projectiles, even hitscan) relies on that wall depth, so the order is load-bearing."
+               data-explanation-wrong="Walls must be cast first because they populate the z-buffer that sprites, projectiles and hitscan all read. Reorder it and occlusion breaks.">
+            <h3 class="quiz-question">Why is <code>cast_all_rays</code> first in the render order?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>It fills the z-buffer that sprites, projectiles and hitscan all depend on.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Walls are the brightest layer and must be drawn before dimming.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>MiniLibX requires the largest image first.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Right. <code>matches_id</code> checks the char after the identifier is whitespace via <code>ft_isspace</code>, which accepts tabs — so <code>NO\t./tex.xpm</code> parses where the old single-space check failed."
+               data-explanation-wrong="The fix is <code>matches_id</code>'s <code>ft_isspace</code> check after the identifier — it accepts tabs, not just a literal space.">
+            <h3 class="quiz-question">What lets <code>NO\t./texture.xpm</code> (tab-separated) parse correctly?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The map is pre-processed to replace tabs with spaces.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span><code>matches_id</code> accepts any whitespace (<code>ft_isspace</code>) after the identifier, including tabs.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The texture loader strips leading tabs from the path.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Correct. After <code>cub->map.grid</code> is set, every later non-blank line goes through <code>post_map_check</code>, which errors out as 'Content after map'."
+               data-explanation-wrong="It's rejected: once the map is stored, <code>post_map_check</code> turns any further non-blank line into a 'Content after map' error.">
+            <h3 class="quiz-question">What happens if a stray identifier line appears <em>after</em> the map?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>It's silently ignored.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>It overrides the earlier value.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span><code>post_map_check</code> rejects it as "Content after map".</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module14')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module14')">Try Again</button>
+        </div>
+
+        <p class="module-outro">You've seen every system and how it's wired. Final stop: put yourself in the corrector's chair and defend it.</p>
+      </div>
+    </section>

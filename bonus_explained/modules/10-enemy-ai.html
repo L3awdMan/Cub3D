@@ -1,0 +1,248 @@
+    <section class="module" id="module-10">
+      <div class="module-inner">
+        <p class="module-eyebrow">Module 10 · Enemy AI</p>
+        <h1 class="module-title">See the player, walk toward the player, shoot the player — on a cooldown.</h1>
+        <p class="module-lede">
+          The AI is deliberately simple, and that's a strength — it's easy to defend and easy to reason about. Once per frame, every enemy runs one tick: end any finished firing pose, take a step toward you if it can see you, and open fire if you're in range and its cooldown has elapsed. No pathfinding graph, no behaviour trees — just <span class="term" data-definition="A ray marched from enemy to player to check nothing blocks the view.">line of sight</span>, distance checks, and a couple of timers.
+        </p>
+
+        <h2 class="screen-heading">The driver — one tick per enemy per frame</h2>
+        <p class="text-block">
+          <code>update_enemies()</code> grabs the wall-clock once and ticks every sprite. The real logic is <code>enemy_tick()</code>, and reading it top to bottom <em>is</em> the AI spec.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — enemy_ai_bonus.c:83</span>
+<pre><code><span class="code-line"><span class="code-keyword">static</span> <span class="code-keyword">void</span>	<span class="code-function">enemy_tick</span>(t_cub *cub, t_sprite *s, <span class="code-keyword">long</span> now)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">double</span>	dx;</span>
+<span class="code-line">	<span class="code-keyword">double</span>	dy;</span>
+<span class="code-line"></span>
+<span class="code-line">	<span class="code-keyword">if</span> (s->type &gt;= SP_PICKUP || s->state == SP_DYING)</span>
+<span class="code-line">		<span class="code-keyword">return</span> ;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (s->state == SP_ATTACKING &amp;&amp; now - s->death_ms &gt;= FIRE_MS)</span>
+<span class="code-line">		s->state = SP_ALIVE;</span>
+<span class="code-line">	<span class="code-function">move_enemy</span>(cub, s);</span>
+<span class="code-line">	dx = cub->player.pos_x - s->x;</span>
+<span class="code-line">	dy = cub->player.pos_y - s->y;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (dx * dx + dy * dy &gt; ATTACK_RANGE * ATTACK_RANGE)</span>
+<span class="code-line">		<span class="code-keyword">return</span> ;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (now &lt; s->next_attack_ms || !<span class="code-function">los_clear</span>(cub, s))</span>
+<span class="code-line">		<span class="code-keyword">return</span> ;</span>
+<span class="code-line">	s->state = SP_ATTACKING;</span>
+<span class="code-line">	s->death_ms = now;</span>
+<span class="code-line">	s->next_attack_ms = now + ATTACK_CD_MS;</span>
+<span class="code-line">	<span class="code-function">enemy_fire</span>(cub, s);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Step one enemy for this frame.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Pickups and corpses don't think. Bail.</p>
+              <p class="tl"></p>
+              <p class="tl">If it was firing and FIRE_MS has elapsed...</p>
+              <p class="tl">...drop back to the walk state.</p>
+              <p class="tl">Try to walk toward the player (see below).</p>
+              <p class="tl">Vector to the player.</p>
+              <p class="tl"></p>
+              <p class="tl">Out of ATTACK_RANGE? (squared, no sqrt) → done.</p>
+              <p class="tl"></p>
+              <p class="tl">Still on cooldown, OR no clear shot? → done.</p>
+              <p class="tl"></p>
+              <p class="tl">Otherwise: enter the firing pose...</p>
+              <p class="tl">...stamp when it started (drives the firing anim)...</p>
+              <p class="tl">...arm the cooldown for the next shot...</p>
+              <p class="tl">...and actually fire.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title"><code>death_ms</code> is reused for the firing timer</strong>
+            <p>One field, two jobs. When an enemy dies, <code>death_ms</code> times the death animation. When it fires, the same field times the firing pose (<code>now - death_ms &gt;= FIRE_MS</code> ends it). They never overlap — a dying enemy can't fire — so reusing the field is safe and saves a struct member.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Line of sight — a thin marched ray</h2>
+        <p class="text-block">
+          An enemy shouldn't shoot you through a wall. <code>los_clear()</code> answers "can this enemy see the player?" by walking a point from the enemy toward you in steps of <strong>0.1 cell</strong>, asking <code>is_blocked()</code> at each step. The first wall (or closed door, or off-grid) returns 0 — no shot. Reach the player with nothing in the way and it returns 1.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — enemy_ai_bonus.c:39</span>
+<pre><code><span class="code-line"><span class="code-keyword">int</span>	<span class="code-function">los_clear</span>(t_cub *cub, t_sprite *s)</span>
+<span class="code-line">{</span>
+<span class="code-line">	dx = cub->player.pos_x - s->x;</span>
+<span class="code-line">	dy = cub->player.pos_y - s->y;</span>
+<span class="code-line">	dist = <span class="code-function">sqrt</span>(dx * dx + dy * dy);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (dist &lt; 1e-6)</span>
+<span class="code-line">		<span class="code-keyword">return</span> (1);</span>
+<span class="code-line">	t = 0.1;</span>
+<span class="code-line">	<span class="code-keyword">while</span> (t &lt; dist)</span>
+<span class="code-line">	{</span>
+<span class="code-line">		<span class="code-keyword">if</span> (<span class="code-function">is_blocked</span>(cub, s->x + dx * (t / dist), s->y + dy * (t / dist)))</span>
+<span class="code-line">			<span class="code-keyword">return</span> (0);</span>
+<span class="code-line">		t += 0.1;</span>
+<span class="code-line">	}</span>
+<span class="code-line">	<span class="code-keyword">return</span> (1);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Can this enemy see the player?</p>
+              <p class="tl"></p>
+              <p class="tl">Vector enemy → player.</p>
+              <p class="tl"></p>
+              <p class="tl">Straight-line distance.</p>
+              <p class="tl">Practically on top of the player? trivially visible.</p>
+              <p class="tl"></p>
+              <p class="tl">March outward from the enemy...</p>
+              <p class="tl">...up to (but not past) the player...</p>
+              <p class="tl"></p>
+              <p class="tl">...and if any 0.1-cell sample lands in a wall/door...</p>
+              <p class="tl">...the view is blocked.</p>
+              <p class="tl">Step forward 0.1 cells.</p>
+              <p class="tl"></p>
+              <p class="tl">Reached the player with nothing in the way → clear.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">⚡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Doors block sight even while they're animating</strong>
+            <p><code>is_blocked()</code> treats any <code>'D'</code> cell as solid for line of sight — regardless of how open it is. So an enemy can't snipe you through a half-open door. (The same <code>'D'</code> check appears in the enemy collision test, which is why enemies never walk through doors either — they can't open them.)</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Chasing — move per axis, slide on walls</h2>
+        <p class="text-block">
+          <code>move_enemy()</code> walks an alive enemy toward you, but only inside a band: closer than <code>CHASE_RANGE</code> (8 cells) and farther than <code>ENEMY_STOP_DIST</code> (1 cell), and only with clear sight. The boss (<code>SP_FLUID</code>) is exempt — it holds its ground. The direction is normalised and scaled by <code>ENEMY_SPD</code> (0.02 cells/frame, deliberately slower than your <code>MOVE_SPD</code>).
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — enemy_move_bonus.c:53</span>
+<pre><code><span class="code-line"><span class="code-keyword">static</span> <span class="code-keyword">void</span>	<span class="code-function">slide_toward</span>(t_cub *cub, t_sprite *s, <span class="code-keyword">double</span> vx, <span class="code-keyword">double</span> vy)</span>
+<span class="code-line">{</span>
+<span class="code-line">	nx = s->x + vx;</span>
+<span class="code-line">	ny = s->y + vy;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (!<span class="code-function">enemy_blocked</span>(cub, nx, s->y))</span>
+<span class="code-line">		s->x = nx;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (!<span class="code-function">enemy_blocked</span>(cub, s->x, ny))</span>
+<span class="code-line">		s->y = ny;</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Move along (vx, vy), one axis at a time.</p>
+              <p class="tl"></p>
+              <p class="tl">Proposed new X and Y.</p>
+              <p class="tl"></p>
+              <p class="tl">Is the X move alone clear? then take it.</p>
+              <p class="tl"></p>
+              <p class="tl">Is the Y move alone clear (from the possibly-updated X)? take it.</p>
+              <p class="tl"></p>
+              <p class="tl">Blocking one axis still lets the other slide → no clipping.</p>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-block">
+          Testing each axis independently is exactly the player's collision trick from Module 3, reused. <code>enemy_blocked()</code> checks the four corners of an <code>ENEMY_PAD</code> (0.3) box, so the body has width and an enemy slides along a wall instead of jamming into it.
+        </p>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">📝</div>
+          <div class="callout-content">
+            <strong class="callout-title">A corrector's gotcha: the stale comment</strong>
+            <p>The header comment in <code>enemy_ai_bonus.c</code> still says <em>"Enemies do not move (chase is a future phase)."</em> That comment is out of date — <code>enemy_tick</code> calls <code>move_enemy</code>, and enemies <strong>do</strong> chase. If a corrector quotes the comment, point them at the actual call. The code is the source of truth.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The tunables</h2>
+        <div class="badge-list">
+          <div class="badge-item"><code class="badge-code">ATTACK_RANGE 6.0</code><span class="badge-desc">Cells within which a seeing enemy can hit you.</span></div>
+          <div class="badge-item"><code class="badge-code">CHASE_RANGE 8.0</code><span class="badge-desc">Cells within which a seeing enemy starts walking in.</span></div>
+          <div class="badge-item"><code class="badge-code">ENEMY_STOP_DIST 1.0</code><span class="badge-desc">Stops closing once this near, so it keeps shooting distance.</span></div>
+          <div class="badge-item"><code class="badge-code">ENEMY_SPD 0.02</code><span class="badge-desc">Cells per frame — slower than the player.</span></div>
+          <div class="badge-item"><code class="badge-code">ATTACK_CD_MS 900</code><span class="badge-desc">Cooldown between an enemy's shots.</span></div>
+          <div class="badge-item"><code class="badge-code">FIRE_MS 270</code><span class="badge-desc">How long the firing pose plays before snapping back to alive.</span></div>
+          <div class="badge-item"><code class="badge-code">ENEMY_PAD 0.3</code><span class="badge-desc">Half-width of the enemy collision box.</span></div>
+        </div>
+
+        <h2 class="screen-heading">Pop quiz</h2>
+        <div class="quiz-container" id="quiz-module10">
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Right. <code>los_clear</code> marches a point in 0.1-cell steps and <code>is_blocked</code> fails on walls, closed/animating doors and off-grid — so an enemy can't shoot through cover."
+               data-explanation-wrong="It's a marched line-of-sight ray (0.1-cell steps). Any wall or door along the way returns 0 and the enemy holds fire.">
+            <h3 class="quiz-question">What stops an enemy from shooting the player through a wall?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The wall absorbs the projectile after it spawns.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span><code>los_clear</code> marches a ray and returns 0 if any sample hits a wall or door.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Enemies can only attack when the player is in the same room id.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Exactly. <code>slide_toward</code> tests the X move and the Y move separately, so a wall blocking one axis still lets the enemy slide along the other — no clipping, no jamming."
+               data-explanation-wrong="It's the per-axis test in <code>slide_toward</code>: X and Y are checked independently, so a blocked axis doesn't cancel the whole move.">
+            <h3 class="quiz-question">How does an enemy slide along a wall instead of getting stuck on it?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>It recomputes an A* path around the wall every frame.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>It teleports to the nearest open cell.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span><code>slide_toward</code> applies the X and Y components independently; a blocked axis is dropped.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="a"
+               data-explanation-right="Correct. <code>move_enemy</code> early-returns for <code>SP_FLUID</code>, so the boss never walks — it holds position and relies on its attacks."
+               data-explanation-wrong="The boss is the exception: <code>move_enemy</code> returns immediately for <code>SP_FLUID</code>, so it stays put while normal enemies chase.">
+            <h3 class="quiz-question">Which enemy never chases the player?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The boss (<code>SP_FLUID</code>) — <code>move_enemy</code> skips it.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The scientist — it only fires.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>None — every enemy chases.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Right. The range gate uses <code>dx*dx + dy*dy &gt; ATTACK_RANGE*ATTACK_RANGE</code> — comparing squared distances avoids a per-frame, per-enemy <code>sqrt</code>."
+               data-explanation-wrong="It compares squared distance to squared range to skip <code>sqrt</code>. Same answer, cheaper — it runs for every enemy every frame.">
+            <h3 class="quiz-question">Why does the attack range check square both sides instead of calling <code>sqrt</code>?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span><code>sqrt</code> is banned by the Norm.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Comparing squared values gives the same result and skips a costly per-enemy <code>sqrt</code>.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Squaring changes the shape of the range to a diamond.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module10')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module10')">Try Again</button>
+        </div>
+
+        <p class="module-outro">The enemy decided to fire. What actually leaves the barrel? Next: projectiles, the player's hitscan, and the weapon HUD.</p>
+      </div>
+    </section>

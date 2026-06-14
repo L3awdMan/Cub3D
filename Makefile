@@ -31,6 +31,9 @@ MLX_DIR   = ./mlx
 MLX_LIB   = $(MLX_DIR)/libmlx.a
 MLX_FLAGS = -L$(MLX_DIR) -lmlx -lXext -lX11 -lm -lz
 
+OBJ_DIR        = obj
+BONUS_OBJ_DIR  = obj_bonus
+
 # ─────────────────────────────────
 #          SOURCE FILES
 # ─────────────────────────────────
@@ -64,7 +67,7 @@ SRCS = $(addprefix src/, $(addsuffix .c, $(MAIN))) \
 	$(addprefix src/render/, $(addsuffix .c, $(RENDER))) \
 	$(addprefix src/events/, $(addsuffix .c, $(EVENTS)))
 
-OBJS = $(SRCS:.c=.o)
+OBJS = $(patsubst src/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 DEPS = $(OBJS:.o=.d)
 
 # ─────────────────────────────────
@@ -152,14 +155,20 @@ ifneq ($(strip $(B_BONUS)),)
 BONUS_SRCS += $(addprefix src_bonus/bonus/, $(addsuffix .c, $(B_BONUS)))
 endif
 
-BONUS_OBJS = $(BONUS_SRCS:.c=.o)
+BONUS_OBJS = $(patsubst src_bonus/%.c, $(BONUS_OBJ_DIR)/%.o, $(BONUS_SRCS))
 BONUS_DEPS = $(BONUS_OBJS:.o=.d)
 
 # ─────────────────────────────────
 #        COMPILATION RULE
 # ─────────────────────────────────
 
-.c.o:
+$(OBJ_DIR)/%.o: src/%.c
+	@mkdir -p $(@D)
+	@printf "Compiling $(BLUE)%-45s$(RESET)" $<
+	@$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@ && printf "✅\n" || printf "❌\n"
+
+$(BONUS_OBJ_DIR)/%.o: src_bonus/%.c
+	@mkdir -p $(@D)
 	@printf "Compiling $(BLUE)%-45s$(RESET)" $<
 	@$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@ && printf "✅\n" || printf "❌\n"
 
@@ -183,8 +192,8 @@ $(NAME): $(OBJS)
 	@echo "$(GREEN)✅ $(NAME) ready$(RESET)"
 
 # SECTION 4 (Makefile): real bonus rule. Builds cub3D_bonus from the src_bonus/
-# tree, sharing libft and MinilibX with the mandatory build. Object files land
-# next to their .c in src_bonus/ so they never collide with mandatory objects.
+# tree, sharing libft and MinilibX with the mandatory build. Objects and deps
+# land in $(BONUS_OBJ_DIR)/ so they never collide with mandatory objects.
 bonus: $(LIBFT) $(MLX_LIB) $(BONUS_NAME)
 
 $(BONUS_NAME): $(BONUS_OBJS)
@@ -199,8 +208,7 @@ $(BONUS_NAME): $(BONUS_OBJS)
 
 clean:
 	@make -C $(LIBFT_DIR) clean
-	@rm -f $(OBJS) $(DEPS)
-	@rm -f $(BONUS_OBJS) $(BONUS_DEPS)
+	@rm -rf $(OBJ_DIR) $(BONUS_OBJ_DIR)
 	@echo "$(YELLOW)🧹 Objects and dependencies deleted (clean)$(RESET)"
 
 fclean: clean

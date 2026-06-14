@@ -1,0 +1,427 @@
+    <section class="module" id="module-5">
+      <div class="module-inner">
+        <p class="module-eyebrow">Module 5 · Doors</p>
+        <h1 class="module-title">A door that retracts from its middle — and lets rays through the slit.</h1>
+        <p class="module-lede">
+          The door is a 1×1 cell tagged <code>'D'</code> in the map. It has one number — <code>progress</code>, from <code>0.0</code> (closed) to <code>1.0</code> (fully open) — and one target. Each frame the progress eases toward its target. The clever part: while the door is mid-open, the renderer lets rays pass through the retracted middle band and stop on the still-solid sides. That's how you can see the room behind a half-open door <em>and</em> still see the door's edges sliding away.
+        </p>
+
+        <h2 class="screen-heading">Three files, three responsibilities</h2>
+        <div class="icon-rows">
+          <div class="icon-row">
+            <div class="icon-circle" style="background: #D94F30">⚙️</div>
+            <div>
+              <strong>doors_bonus.c</strong>
+              <p>State + animation. Allocates the door grid; advances <code>progress</code> toward <code>target</code> every frame at <code>DOOR_SPEED</code>.</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: #2A7B9B">👆</div>
+            <div>
+              <strong>door_use_bonus.c</strong>
+              <p>Player input + ray-vs-door test. <code>toggle_door</code> flips target on E. <code>door_allows_passage</code> tells the DDA whether a ray hit a retracted slit.</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: #D4A843">🎨</div>
+            <div>
+              <strong>door_draw_bonus.c</strong>
+              <p>Drawing. When a ray <em>does</em> stop on a panel, this file warps the texture so the door image compresses to the unopened side.</p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The state is two numbers</h2>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — cub3d_bonus.h:213</span>
+<pre><code><span class="code-line"><span class="code-keyword">typedef</span> <span class="code-keyword">struct</span> s_door</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">double</span>	progress;</span>
+<span class="code-line">	<span class="code-keyword">int</span>	target;</span>
+<span class="code-line">}	t_door;</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Per-cell door state.</p>
+              <p class="tl"></p>
+              <p class="tl">Current animation position: 0 = closed, 1 = fully retracted.</p>
+              <p class="tl">Target: 0 = closing, 1 = opening. update_doors eases progress toward this.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The animation loop is delta-time, not frame count</h2>
+        <p class="text-block">
+          Every frame, <code>update_doors</code> measures the wall-clock milliseconds since last call and nudges every door by <code>DOOR_SPEED × Δt</code>. On a fast machine the increment is small; on a slow one it's bigger. Either way the door opens in about 555 ms because <code>DOOR_SPEED = 0.0018</code> means full travel at that rate of progress per millisecond.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — doors_bonus.c:91</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">update_doors</span>(t_cub *cub)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">long</span>	now;</span>
+<span class="code-line">	<span class="code-keyword">double</span>	step;</span>
+<span class="code-line">	<span class="code-keyword">int</span>	i;</span>
+<span class="code-line">	<span class="code-keyword">int</span>	n;</span>
+<span class="code-line"></span>
+<span class="code-line">	now = <span class="code-function">now_ms</span>();</span>
+<span class="code-line">	<span class="code-keyword">if</span> (cub-&gt;door_last_ms == 0)</span>
+<span class="code-line">		cub-&gt;door_last_ms = now;</span>
+<span class="code-line">	step = (<span class="code-keyword">double</span>)(now - cub-&gt;door_last_ms) * DOOR_SPEED;</span>
+<span class="code-line">	cub-&gt;door_last_ms = now;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (!cub-&gt;doors)</span>
+<span class="code-line">		<span class="code-keyword">return</span> ;</span>
+<span class="code-line">	n = cub-&gt;map.width * cub-&gt;map.height;</span>
+<span class="code-line">	i = -1;</span>
+<span class="code-line">	<span class="code-keyword">while</span> (++i &lt; n)</span>
+<span class="code-line">	{</span>
+<span class="code-line">		<span class="code-keyword">if</span> (cub-&gt;doors[i].target == 1 &amp;&amp; cub-&gt;doors[i].progress &lt; 1.0)</span>
+<span class="code-line">			cub-&gt;doors[i].progress = <span class="code-function">fmin</span>(1.0, cub-&gt;doors[i].progress + step);</span>
+<span class="code-line">		<span class="code-keyword">else</span> <span class="code-keyword">if</span> (cub-&gt;doors[i].target == 0 &amp;&amp; cub-&gt;doors[i].progress &gt; 0.0)</span>
+<span class="code-line">			cub-&gt;doors[i].progress = <span class="code-function">fmax</span>(0.0, cub-&gt;doors[i].progress - step);</span>
+<span class="code-line">	}</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Once per frame, advance every door's progress.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Wall-clock ms via gettimeofday.</p>
+              <p class="tl">First frame: seed the previous-time anchor.</p>
+              <p class="tl"></p>
+              <p class="tl">step = elapsed ms × DOOR_SPEED. Frame-rate independent.</p>
+              <p class="tl">Slide the anchor forward.</p>
+              <p class="tl">No door grid? bail.</p>
+              <p class="tl"></p>
+              <p class="tl">Walk every cell in the flat grid.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Target is "open" and we're not there yet → step up, clamp at 1.</p>
+              <p class="tl"></p>
+              <p class="tl">Target is "closed" and we're not there yet → step down, clamp at 0.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">⏱️</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why delta-time and not "+0.01 per frame"?</strong>
+            <p>If you increment by a fixed amount per frame, animation speed is tied to FPS — fast machine, fast doors. Multiplying elapsed milliseconds by a per-ms rate gives wall-clock-consistent animation. Same door, same 555 ms, any machine.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Toggling on E</h2>
+        <p class="text-block">
+          The player presses E. The hook computes the cell <code>DOOR_REACH = 1.5</code> cells ahead. If that's a door, flip its target. The one guard: if you're standing <em>on</em> the door cell, refuse to start closing it — no crushing the player.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — door_use_bonus.c:32</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">toggle_door</span>(t_cub *cub)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">int</span>	fx;</span>
+<span class="code-line">	<span class="code-keyword">int</span>	fy;</span>
+<span class="code-line">	t_door	*d;</span>
+<span class="code-line"></span>
+<span class="code-line">	fx = (<span class="code-keyword">int</span>)(cub-&gt;player.pos_x + cub-&gt;player.dir_x * DOOR_REACH);</span>
+<span class="code-line">	fy = (<span class="code-keyword">int</span>)(cub-&gt;player.pos_y + cub-&gt;player.dir_y * DOOR_REACH);</span>
+<span class="code-line">	d = <span class="code-function">door_at</span>(cub, fy, fx);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (!d)</span>
+<span class="code-line">		<span class="code-keyword">return</span> ;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (d-&gt;target == 1 &amp;&amp; fx == (<span class="code-keyword">int</span>)cub-&gt;player.pos_x</span>
+<span class="code-line">		&amp;&amp; fy == (<span class="code-keyword">int</span>)cub-&gt;player.pos_y)</span>
+<span class="code-line">		<span class="code-keyword">return</span> ;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (d-&gt;target == 1)</span>
+<span class="code-line">		d-&gt;target = 0;</span>
+<span class="code-line">	<span class="code-keyword">else</span></span>
+<span class="code-line">		d-&gt;target = 1;</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Press E → flip the faced door's target.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Project 1.5 cells along the player's facing — that's the "what am I looking at" cell.</p>
+              <p class="tl"></p>
+              <p class="tl">Ask the door grid for that cell's state.</p>
+              <p class="tl">Not a door → ignore the press.</p>
+              <p class="tl"></p>
+              <p class="tl">Crush guard: door is currently opening + player is standing on the door cell</p>
+              <p class="tl">→ refuse to start closing it.</p>
+              <p class="tl"></p>
+              <p class="tl">Otherwise flip.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The key idea: a sliding center band</h2>
+        <p class="text-block">
+          Picture the door face as a 1-unit-wide strip. The two halves of the door panel slide apart from the middle. At progress <code>p</code>, a slit of total width <code>p</code> sits centered on the door face — the open band is the interval <code>[0.5 − p/2, 0.5 + p/2]</code>. Any ray that hits that band should pass through. Any ray that hits the still-solid sides should stop and render the door texture.
+        </p>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">🚪</div>
+          <div class="callout-content">
+            <strong class="callout-title">The band math</strong>
+            <p style="font-family: var(--font-mono); font-size: 1.05rem; line-height: 1.6;">
+              hit ∈ ( 0.5 − p/2 ,  0.5 + p/2 )  →  pass through<br>
+              else                              →  panel hit
+            </p>
+            <p>At <code>p = 0</code> the band is empty — door fully solid. At <code>p = 1</code> the band is the whole face — door fully open. Linear in between.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading"><code>door_allows_passage</code> implements that band</h2>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — door_use_bonus.c:60</span>
+<pre><code><span class="code-line"><span class="code-keyword">int</span>	<span class="code-function">door_allows_passage</span>(t_cub *cub, <span class="code-keyword">int</span> y, <span class="code-keyword">int</span> x, <span class="code-keyword">double</span> hit)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">double</span>	p;</span>
+<span class="code-line"></span>
+<span class="code-line">	p = <span class="code-function">door_progress_at</span>(cub, y, x);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (p &lt;= 0.0)</span>
+<span class="code-line">		<span class="code-keyword">return</span> (0);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (p &gt;= 1.0)</span>
+<span class="code-line">		<span class="code-keyword">return</span> (1);</span>
+<span class="code-line">	<span class="code-keyword">return</span> (hit &gt; 0.5 - p * 0.5 &amp;&amp; hit &lt; 0.5 + p * 0.5);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">For a ray hitting door at cell (y, x) with hit fraction (0..1), does the ray pass?</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Look up the door's current animation progress.</p>
+              <p class="tl">Fully closed → never pass.</p>
+              <p class="tl"></p>
+              <p class="tl">Fully open → always pass.</p>
+              <p class="tl"></p>
+              <p class="tl">Mid-animation → pass only if hit lies in the central retracted band.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Texturing the visible panel — <code>warp_door_wx</code></h2>
+        <p class="text-block">
+          When the ray <em>does</em> stop on a panel, we have a problem: the panel is now narrower than the full cell face, but we still want to draw the entire door image on it (compressed). The warp function squashes the raw hit coordinate into the appropriate side.
+        </p>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">↔️</div>
+          <div class="callout-content">
+            <strong class="callout-title">The panel-width formula</strong>
+            <p style="font-family: var(--font-mono); font-size: 1.05rem; line-height: 1.6;">
+              panel_width = 0.5 − progress / 2
+            </p>
+            <p>Each side of the door starts at <code>0.5</code> wide (half the cell) and shrinks by <code>p/2</code> as the door opens. At <code>p = 0</code> each side is 0.5 wide; at <code>p = 1</code> each is 0. Two pieces, symmetric.</p>
+          </div>
+        </div>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — door_draw_bonus.c:35</span>
+<pre><code><span class="code-line"><span class="code-keyword">static</span> <span class="code-keyword">double</span>	<span class="code-function">warp_door_wx</span>(<span class="code-keyword">double</span> wx, <span class="code-keyword">double</span> progress)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">double</span>	half;</span>
+<span class="code-line">	<span class="code-keyword">double</span>	panel;</span>
+<span class="code-line"></span>
+<span class="code-line">	<span class="code-keyword">if</span> (progress &lt;= 0.0 || progress &gt;= 1.0)</span>
+<span class="code-line">		<span class="code-keyword">return</span> (wx);</span>
+<span class="code-line">	half = progress * 0.5;</span>
+<span class="code-line">	panel = 0.5 - half;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (panel &lt;= 1e-6)</span>
+<span class="code-line">		<span class="code-keyword">return</span> (wx);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (wx &lt; 0.5)</span>
+<span class="code-line">		<span class="code-keyword">return</span> ((wx / panel) * 0.5);</span>
+<span class="code-line">	<span class="code-keyword">return</span> (0.5 + ((wx - (0.5 + half)) / panel) * 0.5);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Squash raw hit coord (0..1) onto the visible panel's texture coords.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Fully closed or fully open → no warp needed.</p>
+              <p class="tl"></p>
+              <p class="tl">Half of the open gap.</p>
+              <p class="tl">Width of one remaining panel side.</p>
+              <p class="tl">Panel is essentially gone → don't divide by ~0.</p>
+              <p class="tl"></p>
+              <p class="tl">Ray hit the left panel?</p>
+              <p class="tl">Stretch [0, panel] back onto [0, 0.5] of the texture.</p>
+              <p class="tl">Right panel: stretch [0.5+half, 1] onto [0.5, 1].</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The whole opening sequence, narrated</h2>
+        <div class="chat-window" id="chat-door">
+          <div class="chat-messages">
+            <div class="chat-message" data-msg="0" data-sender="user" style="display:none">
+              <div class="chat-avatar" style="background: #2D8B55">U</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: #2D8B55">user</span>
+                <p>Press E facing a 'D' tile.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="toggle" style="display:none">
+              <div class="chat-avatar" style="background: #D94F30">T</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: #D94F30">toggle_door</span>
+                <p>Faced cell is a door. target = 0 → 1.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="update" style="display:none">
+              <div class="chat-avatar" style="background: #2A7B9B">U</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: #2A7B9B">update_doors</span>
+                <p>Frame N: 16 ms × 0.0018 = +0.029. progress 0 → 0.029.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="dda" style="display:none">
+              <div class="chat-avatar" style="background: #D4A843">D</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: #D4A843">DDA</span>
+                <p>Ray hits door, hit = 0.48. Band is (0.485, 0.515). 0.48 outside band → solid. ray->door = 1.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="4" data-sender="drawer" style="display:none">
+              <div class="chat-avatar" style="background: #E06B56">R</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: #E06B56">draw_door_stripe</span>
+                <p>warp_door_wx(0.48, 0.029) → ~0.495 on left panel texture. Draws compressed door pixel column.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="5" data-sender="update" style="display:none">
+              <div class="chat-avatar" style="background: #2A7B9B">U</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: #2A7B9B">update_doors</span>
+                <p>200 ms later: progress = 0.36. Band is (0.32, 0.68).</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="6" data-sender="dda" style="display:none">
+              <div class="chat-avatar" style="background: #D4A843">D</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: #D4A843">DDA</span>
+                <p>Same ray (hit = 0.48) is now INSIDE the band. door_allows_passage = 1. DDA keeps walking past the door cell — hits the wall behind.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="7" data-sender="player" style="display:none">
+              <div class="chat-avatar" style="background: #2D8B55">P</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: #2D8B55">player</span>
+                <p>I can see the room behind the door, framed by the still-visible panel sides. progress hits 0.90 → collision opens up too.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-typing" id="chat-door-typing" style="display:none">
+            <div class="chat-avatar" id="chat-door-typing-avatar">?</div>
+            <div class="chat-typing-dots">
+              <span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>
+            </div>
+          </div>
+
+          <div class="chat-controls">
+            <button class="btn chat-next-btn">Next Message</button>
+            <button class="btn chat-all-btn">Play All</button>
+            <button class="btn chat-reset-btn">Replay</button>
+            <span class="chat-progress"></span>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Two thresholds you must keep separate</h2>
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid #2A7B9B">
+            <div class="pattern-icon" style="background: #2A7B9B">👁️</div>
+            <h4 class="pattern-title">Rays pass through at any p &gt; 0</h4>
+            <p class="pattern-desc">As soon as the door starts opening, the visual slit is real. Rays inside the band continue. That's what makes the see-through-while-opening effect.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid #D94F30">
+            <div class="pattern-icon" style="background: #D94F30">🚶</div>
+            <h4 class="pattern-title">The player only walks through at p ≥ 0.90</h4>
+            <p class="pattern-desc"><code>door_is_open</code> compares against <code>DOOR_PASSABLE = 0.90</code>. Without this, you'd squeeze through a 5% gap. Visual ≠ collision.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Pop quiz</h2>
+        <div class="quiz-container" id="quiz-module5">
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Yes — the DDA returns 0 inside the band, which means 'keep stepping.' The beam continues past the door cell and renders whatever's behind it that column."
+               data-explanation-wrong="The door drawer only runs for columns where the ray stopped on the panel — columns in the slit skip it entirely.">
+            <h3 class="quiz-question">A ray hits a door mid-opening, in the central band. What happens next?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span><code>draw_door_stripe</code> draws a translucent door pixel.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The DDA stops and the renderer draws ceiling-only for that column.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The DDA continues stepping past the door — whatever's behind gets drawn.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Correct. <code>DOOR_PASSABLE = 0.90</code> means the collision system treats a door as a wall until it's almost fully open."
+               data-explanation-wrong="Visual see-through starts immediately (p > 0), but collision is gated separately at 0.90.">
+            <h3 class="quiz-question">A door's <code>progress</code> is 0.15. You try to walk through it. What does the collision system say?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>You walk through — any nonzero progress means open.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Blocked — <code>door_is_open</code> requires progress ≥ 0.90.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>You walk through but get hurt.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="a"
+               data-explanation-right="Right. Without the warp, the texture would render only its center pixels onto the panel, looking stretched and wrong. The warp maps the full image into the visible side."
+               data-explanation-wrong="The warp is purely a texturing concern — collision and pass-through are handled elsewhere.">
+            <h3 class="quiz-question">Why does <code>warp_door_wx</code> exist at all?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>To show the full door image on a narrower visible panel as it slides — texture compression.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>To handle the collision sliver gap.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>To shade the door darker as it opens.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module5')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module5')">Try Again</button>
+        </div>
+
+        <p class="module-outro">Next: the circular minimap and the Euclidean test that gives it that perfect disc edge.</p>
+      </div>
+    </section>

@@ -1,0 +1,267 @@
+    <section class="module" id="module-9">
+      <div class="module-inner">
+        <p class="module-eyebrow">Module 9 · Enemies & the bestiary</p>
+        <h1 class="module-title">A character in the map text becomes a living, animated monster.</h1>
+        <p class="module-lede">
+          The sprite engine from the last module can draw a card in the world. Now we fill the world with things to shoot. Enemies are born straight out of the <code>.cub</code> map: a single character like <code>2</code> or <code>3</code> spawns a robot or a boss. This module covers how tiles turn into entities, the tiny state machine each one runs, and how the <span class="term" data-definition="The Blake Stone-themed cast: pods, bosses, scientists, pod aliens and the special fluid alien.">Blake Stone bestiary</span> swaps art per floor.
+        </p>
+
+        <h2 class="screen-heading">One char → one role</h2>
+        <p class="text-block">
+          <code>tile_type()</code> is the dictionary. It maps a map character to a sprite type index, returning <code>-1</code> for anything that isn't a sprite tile. Five enemy roles, plus the weapon pickups (which map to <code>SP_PICKUP + i</code>).
+        </p>
+
+        <div class="badge-list">
+          <div class="badge-item">
+            <code class="badge-code">'2' → SP_POD</code>
+            <span class="badge-desc">The standard guard/robot of the floor.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">'3' → SP_FLUID</code>
+            <span class="badge-desc">The boss. The only enemy with more than 1 HP.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">'A' → SP_SCIENTIST</code>
+            <span class="badge-desc">Scientist enemy.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">'F' → SP_SPECIAL</code>
+            <span class="badge-desc">The fluid alien — shared on every floor, no firing set.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">'B' → SP_POD_ALIEN</code>
+            <span class="badge-desc">The pod alien.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">"789P" → SP_PICKUP + i</code>
+            <span class="badge-desc">Weapon pickups (<code>PICKUP_CHARS</code>), one frame each.</span>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Spawning: count, allocate, fill</h2>
+        <p class="text-block">
+          <code>init_sprites()</code> runs in two passes. First <code>count_sprites()</code> walks the grid and counts sprite tiles so we know how big the array must be. Then it allocates — and here's a detail correctors love — it over-allocates to <strong>double</strong> the count (<code>sprite_cap = sprite_count * 2</code>). That spare room is for runtime drops: every enemy you kill can append one meat/money reward without a realloc.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — sprites_bonus.c:100</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">init_sprites</span>(t_cub *cub)</span>
+<span class="code-line">{</span>
+<span class="code-line">	cub->sprite_count = <span class="code-function">count_sprites</span>(cub);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (cub->sprite_count &lt;= 0)</span>
+<span class="code-line">		<span class="code-keyword">return</span> ;</span>
+<span class="code-line">	cub->sprite_cap = cub->sprite_count * 2;</span>
+<span class="code-line">	cub->sprites = <span class="code-function">ft_calloc</span>(cub->sprite_cap, <span class="code-keyword">sizeof</span>(t_sprite));</span>
+<span class="code-line">	<span class="code-keyword">if</span> (!cub->sprites)</span>
+<span class="code-line">		<span class="code-function">exit_error</span>(cub, <span class="code-string">"Memory allocation failed"</span>);</span>
+<span class="code-line">	<span class="code-function">fill_sprites</span>(cub);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Build the sprite array from the parsed grid.</p>
+              <p class="tl"></p>
+              <p class="tl">Pass 1: count how many sprite tiles exist.</p>
+              <p class="tl">No sprites on this map? leave everything NULL.</p>
+              <p class="tl"></p>
+              <p class="tl">Reserve DOUBLE the room — the spare half is for reward drops.</p>
+              <p class="tl">Allocate, zeroed.</p>
+              <p class="tl"></p>
+              <p class="tl">Out of memory → clean exit.</p>
+              <p class="tl">Pass 2: fill in each entry.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-block">
+          <code>fill_sprites()</code> places each entity at the <strong>cell centre</strong> (<code>x + 0.5</code>, <code>y + 0.5</code>), sets HP, and then does something important: it rewrites the enemy tile back to <code>'0'</code> floor.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — sprites_bonus.c:83</span>
+<pre><code><span class="code-line">				cub->sprites[k].x = (<span class="code-keyword">double</span>)x + 0.5;</span>
+<span class="code-line">				cub->sprites[k].y = (<span class="code-keyword">double</span>)y + 0.5;</span>
+<span class="code-line">				cub->sprites[k].type = t;</span>
+<span class="code-line">				cub->sprites[k].hp = 1 + (t == SP_FLUID) * (BOSS_HP - 1);</span>
+<span class="code-line">				<span class="code-keyword">if</span> (t &lt; SP_PICKUP)</span>
+<span class="code-line">					cub->map.grid[y][x] = <span class="code-string">'0'</span>;</span>
+<span class="code-line">				k++;</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Centre of the cell, horizontally.</p>
+              <p class="tl">Centre of the cell, vertically.</p>
+              <p class="tl">Remember which role this is.</p>
+              <p class="tl">HP = 1 for everyone, except the boss who gets BOSS_HP (8).</p>
+              <p class="tl">If it's an ENEMY (not a pickup)...</p>
+              <p class="tl">...erase the tile to floor so the raycaster/movement ignore it.</p>
+              <p class="tl">Next slot.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why erase enemies but keep pickups in the grid?</strong>
+            <p>Enemies move and collide via the sprite system, so the raycaster must never treat their cell as a wall — erase it. Weapon pickups are different: <code>weapon_pickup()</code> reads the original tile character (<code>7/8/9/P</code>) off the grid to know <em>which</em> weapon you stepped on, and clears it itself on pickup. So pickups stay as their letter; enemies become <code>'0'</code>.</p>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">⚡</div>
+          <div class="callout-content">
+            <strong class="callout-title">The boss HP one-liner</strong>
+            <p><code>hp = 1 + (t == SP_FLUID) * (BOSS_HP - 1)</code> is a branchless trick. For any normal enemy <code>(t == SP_FLUID)</code> is 0, so HP = 1. For the boss it's 1, so HP = <code>1 + (8 - 1) = 8</code>. One line, no <code>if</code>.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The state machine</h2>
+        <p class="text-block">
+          Each <code>t_sprite</code> carries a <code>state</code> that's just three values. The renderer (module 8) reads <code>state</code> to pick the animation; the AI (next module) writes it. That's the whole contract.
+        </p>
+        <div class="step-cards">
+          <div class="step-card">
+            <div class="step-num">0</div>
+            <div class="step-body">
+              <strong>SP_ALIVE</strong>
+              <p>Loops the walk animation forever and is free to chase. Default state at spawn.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>SP_ATTACKING</strong>
+              <p>Set by the AI when it fires. Plays the firing pose for <code>FIRE_MS</code>, then the AI flips it back to alive.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>SP_DYING</strong>
+              <p>Set by <code>shoot_hitscan()</code> when HP hits 0. Plays the death set once and freezes on the last frame — a permanent corpse.</p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Per-floor art — the <code>t_floorset</code> matrix</h2>
+        <p class="text-block">
+          Roles are floor-agnostic (a "pod" is role 0 on every floor), but the <em>art</em> changes. <code>floor_set(cub->floor)</code> returns a table of four NULL-terminated path lists per role — walk, fire, death, and projectile — and <code>load_anim_sprites()</code> loads each into the matching slot (<code>role</code>, <code>firing_type(role)</code>, <code>death_type(role)</code>, <code>proj_type(role)</code>).
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — anim_sprite_bonus.c:81</span>
+<pre><code><span class="code-line">	fs = <span class="code-function">floor_set</span>(cub->floor);</span>
+<span class="code-line">	r = -1;</span>
+<span class="code-line">	<span class="code-keyword">while</span> (++r &lt; ENEMY_ROLES)</span>
+<span class="code-line">	{</span>
+<span class="code-line">		<span class="code-function">load_one_type</span>(cub, &amp;cub->sprite_anims[r], fs->walk[r]);</span>
+<span class="code-line">		<span class="code-function">load_one_type</span>(cub, &amp;cub->sprite_anims[<span class="code-function">death_type</span>(r)], fs->death[r]);</span>
+<span class="code-line">		<span class="code-function">load_one_type</span>(cub, &amp;cub->sprite_anims[<span class="code-function">firing_type</span>(r)], fs->fire[r]);</span>
+<span class="code-line">		<span class="code-function">load_one_type</span>(cub, &amp;cub->sprite_anims[<span class="code-function">proj_type</span>(r)], fs->proj[r]);</span>
+<span class="code-line">	}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Grab the art table for the current floor (1/2/3).</p>
+              <p class="tl"></p>
+              <p class="tl">For each of the 5 roles...</p>
+              <p class="tl"></p>
+              <p class="tl">...load its walk loop into slot `role`.</p>
+              <p class="tl">...its death set into slot 9+role.</p>
+              <p class="tl">...its firing set into slot 14+role.</p>
+              <p class="tl">...its projectile art into slot 19+role.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-block">
+          So the same map (same <code>2</code>/<code>3</code> tiles) looks completely different on floor 1 vs floor 3 — floor 3's role-0 "pod" is the <em>blue guard</em>, role-2 "scientist" becomes the <em>red guard</em>, and the boss death set even points at an "escaping" animation. Here's the lineup:
+        </p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid #2D8B55">
+            <div class="pattern-icon" style="background: #2D8B55">①</div>
+            <h4 class="pattern-title">Floor 1</h4>
+            <p class="pattern-desc">enemy_floor1, boss_floor1, scientist, fluid alien, pod_alien. Projectiles: spider goo, electro ball, beam ring, —, acid gunk.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid #2A7B9B">
+            <div class="pattern-icon" style="background: #2A7B9B">②</div>
+            <h4 class="pattern-title">Floor 2</h4>
+            <p class="pattern-desc">enemy_floor2, boss_floor2, scientist, fluid alien, enemy_floor2 again. Projectiles: electro, plasma grenade, snotball, —, electro.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid #C93B3B">
+            <div class="pattern-icon" style="background: #C93B3B">③</div>
+            <h4 class="pattern-title">Floor 3</h4>
+            <p class="pattern-desc">blue guard, boss_floor3 (escaping), red guard, fluid alien, blue guard. Projectiles: electro, beam ring, plasma, —, electro.</p>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">The fluid alien is the odd one out</strong>
+            <p>Role 3 (<code>SP_SPECIAL</code>) has <strong>no firing art</strong> — in the floor tables its "fire" list is literally <code>g_special_walk</code> (the walk loop reused) and its projectile list is <code>g_no_proj</code> (empty). An enemy with an empty projectile list attacks <em>invisibly</em> with instant damage instead of launching a shot. Keep that in mind for the combat module.</p>
+          </div>
+        </div>
+
+        <p class="text-block">
+          Loading each frame is plain MiniLibX: <code>load_one_frame()</code> calls <code>mlx_xpm_file_to_image</code> and then records the transparent colour by sampling the very first pixel — <code>a->transp[i] = *(unsigned int *)t->data</code>. That's the (0,0) "None" pixel every Blake Stone sprite atlas puts in its border, and it's exactly what the column blitter skips.
+        </p>
+
+        <h2 class="screen-heading">Pop quiz</h2>
+        <div class="quiz-container" id="quiz-module9">
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Right. The array is allocated at <code>sprite_count * 2</code> so each killed enemy can drop a meat/money reward (an appended sprite) without ever reallocating."
+               data-explanation-wrong="It's headroom for runtime reward drops. <code>spawn_reward</code> appends meat/money into the spare half, so the array is sized at double the spawn count.">
+            <h3 class="quiz-question">Why does <code>init_sprites</code> allocate <code>sprite_count * 2</code> entries?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>To double-buffer the sprite list for smooth animation.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Because each enemy needs a separate corpse entry.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Spare room so killed enemies can append meat/money rewards with no realloc.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Exactly. Enemy tiles are overwritten to '0' so the raycaster and collision never see them as walls — they live in the sprite system instead. Pickups stay so <code>weapon_pickup</code> can read which weapon you grabbed."
+               data-explanation-wrong="Enemy tiles become '0' (the engine must not treat them as walls). Pickups are kept because the weapon-pickup code reads the tile letter to know which gun it is.">
+            <h3 class="quiz-question">After spawning, what happens to a <code>'2'</code> enemy tile in the grid?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>It stays <code>'2'</code> so the renderer can find it again.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>It's rewritten to <code>'0'</code> floor so the raycaster and movement ignore it.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>It's rewritten to <code>'1'</code> wall to block the player.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="a"
+               data-explanation-right="Correct. Roles are floor-agnostic; <code>floor_set(cub->floor)</code> swaps the art table, so the same '2'/'3' tiles render as completely different monsters per floor."
+               data-explanation-wrong="The map characters are floor-agnostic roles. The visual difference comes from <code>floor_set</code> picking a different XPM table per floor.">
+            <h3 class="quiz-question">The same map has a <code>'2'</code> on floor 1 and floor 3. Why do they look different?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span><code>floor_set(cub->floor)</code> loads a different per-floor art table into the same role slot.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The parser assigns a different type to <code>'2'</code> depending on the floor.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>They don't — only the wall textures change between floors.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module9')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module9')">Try Again</button>
+        </div>
+
+        <p class="module-outro">The monsters exist and animate. Now let's give them a brain — line of sight, chasing, and knowing when to shoot.</p>
+      </div>
+    </section>

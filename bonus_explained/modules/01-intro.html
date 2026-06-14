@@ -1,0 +1,167 @@
+    <section class="module" id="module-1">
+      <div class="module-inner">
+        <p class="module-eyebrow">Module 1 · The big picture</p>
+        <h1 class="module-title">A flat grid pretending to be a world.</h1>
+        <p class="module-lede">
+          cub3D is a tiny <span class="term" data-definition="A game in the style of Wolfenstein 3D or Doom, drawn one vertical column at a time using a trick called raycasting instead of a real 3D engine. No GPU, no polygons — just clever math on a 2D grid.">first-person 3D maze</span>
+          built on top of a 2D map. There are no polygons, no GPU, no real 3D. Every wall you see in the window is drawn one vertical stripe at a time from a top-down floor plan.
+        </p>
+
+        <h2 class="screen-heading">What you actually see when you launch the bonus build</h2>
+        <div class="icon-rows">
+          <div class="icon-row">
+            <div class="icon-circle" style="background: #D94F30">🧱</div>
+            <div>
+              <strong>Textured walls in front of you</strong>
+              <p>Drawn column-by-column by the raycaster. Different XPM image per compass direction.</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: #2A7B9B">🗺️</div>
+            <div>
+              <strong>A circular minimap top-left</strong>
+              <p>A top-down disc showing the cells around you, your facing arrow, and your field-of-view cone.</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: #D4A843">🚪</div>
+            <div>
+              <strong>Sliding doors on the <code>D</code> cells</strong>
+              <p>Press <kbd>E</kbd> facing one — it retracts symmetrically from its center, and you can see the room behind it while it's still opening.</p>
+            </div>
+          </div>
+          <div class="icon-row">
+            <div class="icon-circle" style="background: #2D8B55">🖱️</div>
+            <div>
+              <strong>Mouse-look + WASD movement</strong>
+              <p>The cursor stays visible (so you can still click the X to close), but moving the mouse horizontally rotates your view.</p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The trick: cast one ray per screen column.</h2>
+        <p class="text-block">
+          Your window is <strong>1280 px wide</strong>. The renderer does not draw triangles — it shoots <strong>1280 imaginary beams</strong> straight out from your eyeball into the 2D map, one for each pixel-column on screen. Each beam walks across the grid until it bumps into a wall. The <span class="term" data-definition="How far the beam traveled in 'cells' before hitting a wall. Short distance = tall wall stripe on screen. Long distance = tiny stripe far away. This is what creates the illusion of depth.">distance it traveled</span> decides how tall that one stripe of wall looks.
+        </p>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why this still matters in 2026</strong>
+            <p>Raycasting is the <span class="term" data-definition="Idiomatic / classic. A 'canonical' solution is the textbook way it's done, the one everyone references.">canonical</span> first project for understanding 3D graphics from scratch. Modern engines hide cameras, projections, and depth buffers behind layers of abstraction. cub3D forces you to build all three by hand — in roughly 1500 lines of C.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Trace one frame, end to end</h2>
+        <p class="text-block">
+          Every <span class="term" data-definition="One refresh of the screen. A 'frame' is one complete picture. Most games target 60 frames per second (FPS) — that's one full re-render every 16 milliseconds.">frame</span>, the same loop runs. Here's the journey from "you held W" to "pixels on screen":
+        </p>
+
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-1","label":"You hold W. X11 fires KeyPress events. cub->keys[KEY_W] = 1."},
+          {"highlight":"flow-actor-2","label":"loop_hook runs. apply_movement reads keys[KEY_W] and nudges your position forward.","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-3","label":"cast_all_rays starts a fresh raycast pass — 1280 beams, one per screen column.","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-3","label":"For each ray, the DDA walks the grid one cell at a time until it hits a wall."},
+          {"highlight":"flow-actor-4","label":"draw_wall_stripe picks the texture and paints a vertical stripe sized by the hit distance.","packet":true,"from":"actor-3","to":"actor-4"},
+          {"highlight":"flow-actor-4","label":"Minimap, crosshair drawn on top. mlx_put_image_to_window flushes the buffer.","packet":true,"from":"actor-4","to":"actor-4"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-1">
+              <div class="flow-actor-icon">⌨️</div>
+              <span>X11 keys</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-2">
+              <div class="flow-actor-icon">🚶</div>
+              <span>movement</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-3">
+              <div class="flow-actor-icon">📡</div>
+              <span>raycaster</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-4">
+              <div class="flow-actor-icon">🎨</div>
+              <span>renderer</span>
+            </div>
+          </div>
+          <div class="flow-packet" id="flow-packet"></div>
+          <div class="flow-step-label" id="flow-label">Click "Next Step" to walk through one frame</div>
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">Next Step</button>
+            <button class="btn flow-reset-btn">Restart</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The whole frame is six function calls</h2>
+        <p class="text-block">
+          Open <code>src_bonus/render/render.c</code>. The entire game loop fits on screen. Every other file we look at in this course is something this hook delegates to.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — render.c:53</span>
+<pre><code><span class="code-line"><span class="code-keyword">int</span>	<span class="code-function">loop_hook</span>(<span class="code-keyword">void</span> *param)</span>
+<span class="code-line">{</span>
+<span class="code-line">	t_cub	*cub;</span>
+<span class="code-line"></span>
+<span class="code-line">	cub = (t_cub *)param;</span>
+<span class="code-line">	<span class="code-function">apply_movement</span>(cub);</span>
+<span class="code-line">	<span class="code-function">apply_rotation</span>(cub);</span>
+<span class="code-line">	<span class="code-function">apply_mouse_look</span>(cub);</span>
+<span class="code-line">	<span class="code-function">update_doors</span>(cub);</span>
+<span class="code-line">	<span class="code-function">update_horizon</span>(cub);</span>
+<span class="code-line">	<span class="code-function">render_frame</span>(cub);</span>
+<span class="code-line">	<span class="code-keyword">return</span> (0);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">This function runs once per frame — MiniLibX calls it for you, forever.</p>
+              <p class="tl"><code>cub</code> is the giant state struct: player position, map, textures, doors, everything.</p>
+              <p class="tl">Step 1: read held WASD keys → nudge the player's position.</p>
+              <p class="tl">Step 2: read held arrow keys → rotate the view.</p>
+              <p class="tl">Step 3: read the accumulated mouse delta → rotate the view some more.</p>
+              <p class="tl">Step 4: advance every door's open/close animation by one tick.</p>
+              <p class="tl">Step 5: update the head-bob offset so the horizon sways while you walk.</p>
+              <p class="tl">Step 6: actually paint the frame — raycast, sprites, minimap, blit.</p>
+              <p class="tl">Return 0 so MiniLibX keeps calling us next frame.</p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Pop quiz</h2>
+        <div class="quiz-container" id="quiz-module1">
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Right. Every column is one beam. Wider window = more beams = more compute per frame. That's why cub3D's window size is a perf knob."
+               data-explanation-wrong="Re-read the lede. The renderer draws one stripe per beam, and one beam per screen column.">
+            <h3 class="quiz-question">Your window is 1280 × 720. Roughly how many rays does the raycaster fire per frame?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>One. The renderer fires one ray and reuses it for every column.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>1280 — one per screen column.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>1280 × 720 = 921,600 — one per pixel.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Yes. <code>loop_hook</code> is the orchestrator — every other system gets a method call from here, in this order, every single frame."
+               data-explanation-wrong="Movement and rendering both happen in <code>loop_hook</code>, called every frame by MLX, not on key events.">
+            <h3 class="quiz-question">When does the wall get re-drawn after you move?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>When X11 fires a KeyPress event.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>When the OS sends a redraw event.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Every frame, in <code>loop_hook</code>, whether you moved or not.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module1')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module1')">Try Again</button>
+        </div>
+
+        <p class="module-outro">Next: how a single ray finds the wall it's going to hit. The DDA.</p>
+      </div>
+    </section>

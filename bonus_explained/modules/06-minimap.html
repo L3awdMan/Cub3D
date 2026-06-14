@@ -1,0 +1,381 @@
+    <section class="module" id="module-6">
+      <div class="module-inner">
+        <p class="module-eyebrow">Module 6 · Minimap</p>
+        <h1 class="module-title">A circular cookie cutter stamped onto a square grid.</h1>
+        <p class="module-lede">
+          The minimap is built as a square in memory — cells, player marker, FOV cone, white ring — but every single pixel write is gated by one Euclidean distance test against the disc center. Outside the disc? silent drop. Inside? written. That's the entire technique. No alpha mask, no second image, no MLX trickery.
+        </p>
+
+        <h2 class="screen-heading">The geometry</h2>
+        <div class="badge-list">
+          <div class="badge-item">
+            <code class="badge-code">MM_X, MM_Y</code>
+            <span class="badge-desc">Top-left screen position of the minimap bounding box. (16, 16) — tucked under the corner.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">MM_SIZE</code>
+            <span class="badge-desc">Bounding-box side length in pixels. 108.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">MM_R</code>
+            <span class="badge-desc">Disc radius. 54 = half of MM_SIZE.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">center</code>
+            <span class="badge-desc">(MM_X + MM_R, MM_Y + MM_R) = (70, 70). The center of the disc on screen.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">MM_CELL</code>
+            <span class="badge-desc">Pixels per map cell drawn on the minimap. 9.</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">MM_RADIUS</code>
+            <span class="badge-desc">How many cells in each direction from the player are visible. 6.</span>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The cookie cutter — <code>mm_in_circle</code></h2>
+        <p class="text-block">
+          For a candidate pixel (x, y), compute its offset (lx, ly) from the disc center. If <code>lx² + ly² ≤ MM_R²</code>, the pixel is inside. Plain integer arithmetic — no <code>sqrt</code>, because comparing squared distances against squared radius gives the same answer faster.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — minimap_draw_bonus.c:24</span>
+<pre><code><span class="code-line"><span class="code-keyword">static</span> <span class="code-keyword">int</span>	<span class="code-function">mm_in_circle</span>(<span class="code-keyword">int</span> x, <span class="code-keyword">int</span> y)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">int</span>	lx;</span>
+<span class="code-line">	<span class="code-keyword">int</span>	ly;</span>
+<span class="code-line"></span>
+<span class="code-line">	lx = x - (MM_X + MM_R);</span>
+<span class="code-line">	ly = y - (MM_Y + MM_R);</span>
+<span class="code-line">	<span class="code-keyword">return</span> (lx * lx + ly * ly &lt;= MM_R * MM_R);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">True if pixel (x, y) lies inside the disc.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Horizontal offset from disc center.</p>
+              <p class="tl">Vertical offset from disc center.</p>
+              <p class="tl">Pythagoras squared: inside if lx² + ly² ≤ R².</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">√</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why not <code>sqrt</code>?</strong>
+            <p>The condition <code>distance ≤ R</code> is equivalent to <code>distance² ≤ R²</code> whenever both sides are non-negative. Squaring is one multiply; <code>sqrt</code> is a much more expensive transcendental. For a 108×108 box at 60 FPS, that adds up.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Every minimap write goes through <code>mm_put_circ</code></h2>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — minimap_draw_bonus.c:38</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">mm_put_circ</span>(t_cub *cub, <span class="code-keyword">int</span> x, <span class="code-keyword">int</span> y, <span class="code-keyword">unsigned</span> <span class="code-keyword">int</span> c)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">if</span> (<span class="code-function">mm_in_circle</span>(x, y))</span>
+<span class="code-line">		<span class="code-function">put_px</span>(&amp;cub-&gt;img, x, y, c);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Disc-gated pixel write.</p>
+              <p class="tl"></p>
+              <p class="tl">Outside the disc → silent no-op.</p>
+              <p class="tl">Inside → write to the frame buffer.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The four passes that build the minimap</h2>
+        <div class="step-cards">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>Cell grid</strong>
+              <p><code>draw_minimap</code> walks a window of <code>2 × MM_RADIUS</code> cells around the player and stamps each as a colored MM_CELL square via <code>mm_square</code>.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>FOV cone + facing line</strong>
+              <p><code>mm_overlay</code> calls <code>mm_ray</code> three times: left FOV edge in blue, right FOV edge in blue, forward facing in red.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>Player dot</strong>
+              <p>A 5×5 yellow patch centered on the disc center.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <strong>White outer ring</strong>
+              <p><code>mm_outline</code> writes only pixels in the band between <code>R − 3</code> and <code>R</code> — that's the 3-pixel-thick white frame on top.</p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading"><code>draw_minimap</code> — the orchestrator</h2>
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — minimap_bonus.c:75</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">draw_minimap</span>(t_cub *cub)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">double</span>	px;</span>
+<span class="code-line">	<span class="code-keyword">double</span>	py;</span>
+<span class="code-line">	<span class="code-keyword">int</span>	gy;</span>
+<span class="code-line">	<span class="code-keyword">int</span>	gx;</span>
+<span class="code-line"></span>
+<span class="code-line">	<span class="code-keyword">if</span> (!cub-&gt;show_minimap)</span>
+<span class="code-line">		<span class="code-keyword">return</span> ;</span>
+<span class="code-line">	px = cub-&gt;player.pos_x;</span>
+<span class="code-line">	py = cub-&gt;player.pos_y;</span>
+<span class="code-line">	gy = (<span class="code-keyword">int</span>)(py - MM_RADIUS) - 1;</span>
+<span class="code-line">	<span class="code-keyword">while</span> (++gy &lt;= (<span class="code-keyword">int</span>)(py + MM_RADIUS))</span>
+<span class="code-line">	{</span>
+<span class="code-line">		gx = (<span class="code-keyword">int</span>)(px - MM_RADIUS) - 1;</span>
+<span class="code-line">		<span class="code-keyword">while</span> (++gx &lt;= (<span class="code-keyword">int</span>)(px + MM_RADIUS))</span>
+<span class="code-line">			<span class="code-function">mm_square</span>(cub, MM_X + (<span class="code-keyword">int</span>)((gx - (px - MM_RADIUS)) * MM_CELL),</span>
+<span class="code-line">				MM_Y + (<span class="code-keyword">int</span>)((gy - (py - MM_RADIUS)) * MM_CELL),</span>
+<span class="code-line">				<span class="code-function">mm_cell_color</span>(cub, gy, gx));</span>
+<span class="code-line">	}</span>
+<span class="code-line">	<span class="code-function">mm_overlay</span>(cub);</span>
+<span class="code-line">	<span class="code-function">mm_outline</span>(cub);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Paint the minimap. Called every frame from render_frame.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">M-toggle off → skip the whole pass.</p>
+              <p class="tl"></p>
+              <p class="tl">Player position in world coords.</p>
+              <p class="tl"></p>
+              <p class="tl">Window of 2×MM_RADIUS cells around the player on Y.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Same window on X.</p>
+              <p class="tl"></p>
+              <p class="tl">Stamp this cell as a colored square. Position calc projects world (gx, gy) into the minimap box.</p>
+              <p class="tl"></p>
+              <p class="tl">mm_cell_color reads the cell character: '1' → wall color, 'D' → door color, etc.</p>
+              <p class="tl"></p>
+              <p class="tl">Add the player dot + FOV cone on top.</p>
+              <p class="tl">Add the white ring on top of that.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The FOV cone — <code>mm_ray</code></h2>
+        <p class="text-block">
+          Plotting "a line from center toward direction (vx, vy)" is dead simple: step a parameter <code>t</code> in tiny increments, multiply by the direction vector and the cell size, write a pixel. The disc mask handles clipping for free.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — minimap_draw_bonus.c:66</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">mm_ray</span>(t_cub *cub, <span class="code-keyword">double</span> vx, <span class="code-keyword">double</span> vy, <span class="code-keyword">unsigned</span> <span class="code-keyword">int</span> color)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">double</span>	t;</span>
+<span class="code-line">	<span class="code-keyword">int</span>	sx;</span>
+<span class="code-line">	<span class="code-keyword">int</span>	sy;</span>
+<span class="code-line"></span>
+<span class="code-line">	t = 0.0;</span>
+<span class="code-line">	<span class="code-keyword">while</span> (t &lt; MM_RADIUS - 0.5)</span>
+<span class="code-line">	{</span>
+<span class="code-line">		sx = MM_X + MM_SIZE / 2 + (<span class="code-keyword">int</span>)(vx * t * MM_CELL);</span>
+<span class="code-line">		sy = MM_Y + MM_SIZE / 2 + (<span class="code-keyword">int</span>)(vy * t * MM_CELL);</span>
+<span class="code-line">		<span class="code-function">mm_put_circ</span>(cub, sx, sy, color);</span>
+<span class="code-line">		t += 0.04;</span>
+<span class="code-line">	}</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Plot a line from the disc center along (vx, vy).</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Parameter starts at 0.</p>
+              <p class="tl">Step until we'd exit the disc (≤ MM_RADIUS - 0.5 cells out).</p>
+              <p class="tl"></p>
+              <p class="tl">Screen X = center + (vector × t × pixels-per-cell).</p>
+              <p class="tl">Same for Y.</p>
+              <p class="tl">Write — silently dropped if outside the disc.</p>
+              <p class="tl">Small step. Smaller = denser pixels.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading"><code>mm_overlay</code> sends three rays</h2>
+        <p class="text-block">
+          The player's facing direction is <code>dir</code>. The two FOV edges are <code>dir + plane</code> and <code>dir − plane</code> — that's the same camera math the raycaster uses for the leftmost and rightmost screen columns.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — minimap_bonus.c:50</span>
+<pre><code><span class="code-line">p = &amp;cub-&gt;player;</span>
+<span class="code-line"><span class="code-function">mm_ray</span>(cub, p-&gt;dir_x + p-&gt;plane_x, p-&gt;dir_y + p-&gt;plane_y, MM_FOV);</span>
+<span class="code-line"><span class="code-function">mm_ray</span>(cub, p-&gt;dir_x - p-&gt;plane_x, p-&gt;dir_y - p-&gt;plane_y, MM_FOV);</span>
+<span class="code-line"><span class="code-function">mm_ray</span>(cub, p-&gt;dir_x, p-&gt;dir_y, MM_DIR);</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Shortcut to the player.</p>
+              <p class="tl">Right FOV edge: forward + sideways. Drawn in blue.</p>
+              <p class="tl">Left FOV edge: forward − sideways. Same blue.</p>
+              <p class="tl">Center facing arrow: just forward. Drawn in red.</p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The white ring — <code>mm_outline</code></h2>
+        <p class="text-block">
+          A ring is "inside the outer disc AND outside a slightly smaller inner disc." One squared-distance test, two thresholds.
+        </p>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">⚪</div>
+          <div class="callout-content">
+            <strong class="callout-title">Ring as a band</strong>
+            <p style="font-family: var(--font-mono); font-size: 1.05rem; line-height: 1.6;">
+              (R − 3)² &lt; lx² + ly² ≤ R²
+            </p>
+            <p>R = 54. Inner = 51. Pixels with squared distance in (2601, 2916] get white. Everything else is left untouched (it's already cells / overlay / unwritten).</p>
+          </div>
+        </div>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — minimap_draw_bonus.c:86</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">mm_outline</span>(t_cub *cub)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">int</span>	x;</span>
+<span class="code-line">	<span class="code-keyword">int</span>	y;</span>
+<span class="code-line">	<span class="code-keyword">int</span>	lx;</span>
+<span class="code-line">	<span class="code-keyword">int</span>	ly;</span>
+<span class="code-line">	<span class="code-keyword">int</span>	d2;</span>
+<span class="code-line"></span>
+<span class="code-line">	y = MM_Y - 1;</span>
+<span class="code-line">	<span class="code-keyword">while</span> (++y &lt; MM_Y + MM_SIZE)</span>
+<span class="code-line">	{</span>
+<span class="code-line">		x = MM_X - 1;</span>
+<span class="code-line">		<span class="code-keyword">while</span> (++x &lt; MM_X + MM_SIZE)</span>
+<span class="code-line">		{</span>
+<span class="code-line">			lx = x - (MM_X + MM_R);</span>
+<span class="code-line">			ly = y - (MM_Y + MM_R);</span>
+<span class="code-line">			d2 = lx * lx + ly * ly;</span>
+<span class="code-line">			<span class="code-keyword">if</span> (d2 &lt;= MM_R * MM_R</span>
+<span class="code-line">				&amp;&amp; d2 &gt; (MM_R - MM_RING_THICK) * (MM_R - MM_RING_THICK))</span>
+<span class="code-line">				<span class="code-function">put_px</span>(&amp;cub-&gt;img, x, y, MM_RING);</span>
+<span class="code-line">		}</span>
+<span class="code-line">	}</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Paint the white outer ring on top of everything else.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Walk every pixel in the bounding box.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Offset from center.</p>
+              <p class="tl"></p>
+              <p class="tl">Squared distance.</p>
+              <p class="tl">Inside the outer disc AND outside the slightly smaller inner disc</p>
+              <p class="tl">→ that's the ring band, MM_RING_THICK pixels thick.</p>
+              <p class="tl">Write white. Note: bypasses mm_put_circ; we know it's already inside the outer disc.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Pop quiz</h2>
+        <div class="quiz-container" id="quiz-module6">
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Right. Every minimap write routes through <code>mm_put_circ</code>, which silently drops anything outside the disc — that's the entire mask."
+               data-explanation-wrong="There's no separate mask image or alpha channel — the disc is purely a per-pixel <code>if</code> test.">
+            <h3 class="quiz-question">How does the minimap stay perfectly circular at its edges?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>A separate circular mask image is alpha-blended on top.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Every pixel write tests <code>lx² + ly² ≤ R²</code>; outside-the-disc writes are dropped.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>MiniLibX clips draws to a circular sub-window.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Yes — squaring is one multiply, and comparing squared values gives the same answer as comparing distances when both are non-negative. <code>sqrt</code> is much more expensive."
+               data-explanation-wrong="Both forms produce correct geometry. The reason to skip sqrt is cost — it runs on every pixel of the minimap, every frame.">
+            <h3 class="quiz-question">Why does <code>mm_in_circle</code> compare <code>lx*lx + ly*ly</code> against <code>MM_R*MM_R</code> instead of using <code>sqrt</code>?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Because <code>sqrt</code> isn't allowed by the 42 Norm.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Because the geometry is different — squared distance forms a square, not a circle.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Performance — squaring is one multiply; <code>sqrt</code> is much costlier and runs per pixel per frame.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="a"
+               data-explanation-right="Yes. Same camera math the raycaster uses for the leftmost and rightmost screen columns — the FOV cone is drawn by walking those two vectors."
+               data-explanation-wrong="The minimap's FOV cone uses the live <code>plane</code> vector; it's not hardcoded.">
+            <h3 class="quiz-question">Where do the FOV cone's two edge vectors come from?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span><code>dir ± plane</code> — the same vectors the raycaster uses for screen edges.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>A hardcoded ±30° rotation of <code>dir</code>.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The first and last entries of <code>cub->zbuf</code>.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module6')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module6')">Try Again</button>
+        </div>
+
+        <p class="module-outro">Last module: the depth fog, side-darkening, and head-bob that sell the illusion of a 3D world.</p>
+      </div>
+    </section>

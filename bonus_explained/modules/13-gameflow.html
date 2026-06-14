@@ -1,0 +1,291 @@
+    <section class="module" id="module-13">
+      <div class="module-inner">
+        <p class="module-eyebrow">Module 13 · Game flow &amp; cutscenes</p>
+        <h1 class="module-title">One integer decides whether you're in a menu, playing, dead, winning, or watching a movie.</h1>
+        <p class="module-lede">
+          Everything you've seen so far — rays, sprites, combat, HUD — only happens during one state. The whole program is wrapped in a <span class="term" data-definition="A variable whose value selects which update/draw code runs each frame.">state machine</span> built on a single field, <code>cub->game_state</code>. This module follows the player from the title screen, through a difficulty choice, into a floor, through death and respawn, and onward to the next floor via full-screen cutscenes.
+        </p>
+
+        <h2 class="screen-heading">The nine states</h2>
+        <div class="badge-list">
+          <div class="badge-item"><code class="badge-code">GS_PLAYING 0</code><span class="badge-desc">Normal gameplay — the only state that updates the world.</span></div>
+          <div class="badge-item"><code class="badge-code">GS_DEAD 1</code><span class="badge-desc">You died; the "YOU ARE DEAD" overlay plays.</span></div>
+          <div class="badge-item"><code class="badge-code">GS_WIN 2</code><span class="badge-desc">Floor cleared; "YOU WIN" overlay.</span></div>
+          <div class="badge-item"><code class="badge-code">GS_CUTSCENE 3</code><span class="badge-desc">A full-screen movie is playing; world frozen.</span></div>
+          <div class="badge-item"><code class="badge-code">GS_INTRO 4</code><span class="badge-desc">Title screen.</span></div>
+          <div class="badge-item"><code class="badge-code">GS_MENU 5</code><span class="badge-desc">Main menu (Start / Settings / Difficulty).</span></div>
+          <div class="badge-item"><code class="badge-code">GS_SETTINGS 6 · GS_DIFFICULTY 7</code><span class="badge-desc">Sub-screens.</span></div>
+          <div class="badge-item"><code class="badge-code">GS_FADEOUT 8</code><span class="badge-desc">The clear→black transition that launches a run.</span></div>
+        </div>
+
+        <h2 class="screen-heading">The front-end flow</h2>
+        <p class="text-block">
+          <code>menu_input()</code> is the whole front-end, dispatched per key press by the current state. It reads like a flowchart.
+        </p>
+        <div class="step-cards">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>Intro → Menu</strong>
+              <p>Space/Enter on the title screen steps to <code>GS_MENU</code>.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>Menu navigation</strong>
+              <p>Up/Down (or W/S) move a wrapping cursor; Backspace goes back to intro. Confirm runs <code>menu_select()</code>.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>Select</strong>
+              <p>Row 0 = Start (→ <code>GS_FADEOUT</code>), row 1 = <code>GS_SETTINGS</code>, row 2 = <code>GS_DIFFICULTY</code>.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <strong>Fade → cutscene → play</strong>
+              <p><code>GS_FADEOUT</code> auto-advances (no input): once the black frame is reached, the floor-1 intro cutscene plays, which ends in <code>GS_PLAYING</code>.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Difficulty is the one menu choice that touches gameplay</strong>
+            <p>Settings is cosmetic, but Difficulty writes <code>cub->difficulty</code>, and that feeds <code>player_dmg()</code>: <code>ATTACK_DMG × {1.0, 1.5, 2.0}</code> for Easy / Skilled / Gigachad. That's why the combat module kept calling <code>player_dmg(cub)</code> instead of the raw constant — this is the single dial that makes you take 6, 9, or 12 damage per hit.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Death &amp; respawn</h2>
+        <p class="text-block">
+          <code>update_endgame()</code> is the per-frame referee. In <code>GS_PLAYING</code> it watches <code>hp</code>; the instant it hits 0 it flips to <code>GS_DEAD</code>. Then it waits for a confirm key — but only <em>after</em> the death animation has fully played, so the Space you were holding to shoot can't skip the screen.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — endgame_state_bonus.c:61</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">update_endgame</span>(t_cub *cub)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">if</span> (cub->game_state == GS_PLAYING)</span>
+<span class="code-line">	{</span>
+<span class="code-line">		<span class="code-keyword">if</span> (cub->player.hp &lt;= 0)</span>
+<span class="code-line">			<span class="code-function">enter_state</span>(cub, GS_DEAD);</span>
+<span class="code-line">	}</span>
+<span class="code-line">	<span class="code-keyword">else if</span> (cub->game_state == GS_DEAD)</span>
+<span class="code-line">	{</span>
+<span class="code-line">		<span class="code-keyword">if</span> (<span class="code-function">confirm_pressed</span>(cub))</span>
+<span class="code-line">			<span class="code-function">respawn</span>(cub);</span>
+<span class="code-line">	}</span>
+<span class="code-line">	<span class="code-keyword">else if</span> (cub->game_state == GS_WIN)</span>
+<span class="code-line">	{</span>
+<span class="code-line">		<span class="code-keyword">if</span> (cub->cutscene.final_done)</span>
+<span class="code-line">			<span class="code-keyword">return</span> ;</span>
+<span class="code-line">		<span class="code-keyword">if</span> (<span class="code-function">confirm_pressed</span>(cub))</span>
+<span class="code-line">			<span class="code-function">advance_floor</span>(cub);</span>
+<span class="code-line">	}</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">The per-frame state referee.</p>
+              <p class="tl"></p>
+              <p class="tl">While playing...</p>
+              <p class="tl"></p>
+              <p class="tl">...HP hit zero?</p>
+              <p class="tl">...switch to the death screen.</p>
+              <p class="tl"></p>
+              <p class="tl">While on the death screen...</p>
+              <p class="tl"></p>
+              <p class="tl">...confirm (after the anim) →</p>
+              <p class="tl">...restore the floor and play on.</p>
+              <p class="tl"></p>
+              <p class="tl">While on the win screen...</p>
+              <p class="tl"></p>
+              <p class="tl">...if this is the FINAL (floor-3) win, do nothing — stay here forever.</p>
+              <p class="tl"></p>
+              <p class="tl">...otherwise confirm →</p>
+              <p class="tl">...advance to the next floor.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-block">
+          <code>respawn()</code> is why dying isn't game-over: it restores the floor to a snapshot taken when the floor loaded. <code>capture_spawn()</code> saved the player camera and the initial sprite array; respawn copies them back, refills HP, reseeds the lives counter, clears every projectile, flash and held key, and drops you back into <code>GS_PLAYING</code>.
+        </p>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">⚡</div>
+          <div class="callout-content">
+            <strong class="callout-title">The spawn snapshot is a deep-ish copy</strong>
+            <p><code>capture_spawn</code> doesn't just remember your position — it <code>memcpy</code>s the entire sprite array into <code>spawn_sprites</code>. So respawn brings back <em>every enemy you killed</em>, in their original positions, full HP. That's the difference between "restart the floor" and "respawn at a checkpoint": this is a full floor restart from a saved state, with the window, weapons and MiniLibX left untouched.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Floor progression — reload in place</h2>
+        <p class="text-block">
+          Winning a floor advances you to the next. The clever bit: it never recreates the window or reloads MiniLibX. <code>advance_floor_after_cutscene()</code> tears down only the <em>floor's</em> heap (grid, doors, sprites, textures), parses the next map, and re-runs the per-floor init chain.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — floor_switch_bonus.c:76</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">advance_floor_after_cutscene</span>(t_cub *cub)</span>
+<span class="code-line">{</span>
+<span class="code-line">	path = <span class="code-function">next_floor_map</span>(cub->floor);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (!path)</span>
+<span class="code-line">		<span class="code-keyword">return</span> ;</span>
+<span class="code-line">	<span class="code-function">free_textures</span>(cub);</span>
+<span class="code-line">	<span class="code-function">free_anim_sprites</span>(cub);</span>
+<span class="code-line">	<span class="code-function">reset_map_state</span>(cub);</span>
+<span class="code-line">	<span class="code-function">parse_file</span>(cub, path);</span>
+<span class="code-line">	<span class="code-function">reinit_floor</span>(cub);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Load the next floor in place.</p>
+              <p class="tl"></p>
+              <p class="tl">Which map is next? (floor 1→2, 2→3, else none)</p>
+              <p class="tl">No next floor? we're done.</p>
+              <p class="tl"></p>
+              <p class="tl">Free this floor's wall/floor textures...</p>
+              <p class="tl">...and its animated sprite frames...</p>
+              <p class="tl">...and its grid/doors/sprites heap.</p>
+              <p class="tl">Parse the next .cub (it sets the new FLOOR number).</p>
+              <p class="tl">Rebuild doors, sprites, spawn snapshot, textures, anims.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Floor 1 skips the cutscene; floor 2 doesn't</strong>
+            <p><code>advance_floor()</code> branches: from floor 2 it plays the ending cutscene first (<code>CUT_END_F2</code> with action <code>CUT_ACT_NEXT</code>), and the cutscene's finish handler calls <code>advance_floor_after_cutscene</code>. From floor 1 it loads floor 2 directly. Floor 3 never reaches <code>advance_floor</code> at all — its ending is driven from the money pickup.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Cutscenes — a frozen full-screen movie</h2>
+        <p class="text-block">
+          A cutscene is a lazily-loaded XPM frame sequence. While <code>GS_CUTSCENE</code> is active the world stops updating and <code>render_frame</code> blits only the current frame, full-screen. <code>update_cutscene()</code> picks the frame purely from elapsed time, and when it runs past the last frame, <code>finish_cutscene()</code> decides what happens next based on the action it was started with.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — cutscene_draw_bonus.c:7</span>
+<pre><code><span class="code-line"><span class="code-keyword">static</span> <span class="code-keyword">void</span>	<span class="code-function">finish_cutscene</span>(t_cub *cub)</span>
+<span class="code-line">{</span>
+<span class="code-line">	action = cub->cutscene.next_action;</span>
+<span class="code-line">	<span class="code-function">free_cutscene</span>(cub);</span>
+<span class="code-line">	<span class="code-function">ft_bzero</span>(cub->keys, <span class="code-keyword">sizeof</span>(cub->keys));</span>
+<span class="code-line">	<span class="code-keyword">if</span> (action == CUT_ACT_NEXT)</span>
+<span class="code-line">		<span class="code-function">advance_floor_after_cutscene</span>(cub);</span>
+<span class="code-line">	<span class="code-keyword">else if</span> (action == CUT_ACT_FINAL)</span>
+<span class="code-line">	{</span>
+<span class="code-line">		cub->cutscene.final_done = 1;</span>
+<span class="code-line">		<span class="code-function">enter_state</span>(cub, GS_WIN);</span>
+<span class="code-line">	}</span>
+<span class="code-line">	<span class="code-keyword">else</span></span>
+<span class="code-line">		cub->game_state = GS_PLAYING;</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">The cutscene just played its last frame.</p>
+              <p class="tl"></p>
+              <p class="tl">Remember what it was told to do next.</p>
+              <p class="tl">Free the frames and clear held keys.</p>
+              <p class="tl"></p>
+              <p class="tl">"NEXT" → load the next floor now.</p>
+              <p class="tl"></p>
+              <p class="tl">"FINAL" (floor-3 ending) →</p>
+              <p class="tl"></p>
+              <p class="tl">...mark the game finished forever...</p>
+              <p class="tl">...and show the win screen (which now loops game-over art).</p>
+              <p class="tl"></p>
+              <p class="tl">Plain "PLAY" (the floor-1 intro) → just start playing.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">🎬</div>
+          <div class="callout-content">
+            <strong class="callout-title">The three cutscene hooks</strong>
+            <p><code>CUT_BEGIN_F1</code> launches the run (action PLAY → gameplay). <code>CUT_END_F2</code> bridges floor 2 → 3 (action NEXT → reload). <code>CUT_END_F3</code> is the finale (action FINAL → <code>final_done = 1</code>, terminal <code>GS_WIN</code>). Once <code>final_done</code> is set, <code>draw_endgame</code> loops the <code>gameover_ui</code> frames and <code>update_endgame</code> refuses to advance — the game is over, on purpose.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Pop quiz</h2>
+        <div class="quiz-container" id="quiz-module13">
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Right. <code>respawn</code> <code>memcpy</code>s the <code>spawn_sprites</code> snapshot back, so every enemy you killed returns at full HP — it's a full floor restart from the captured spawn state."
+               data-explanation-wrong="Respawn restores the whole captured snapshot (player + the entire sprite array), so killed enemies come back. It's not a checkpoint that keeps your progress.">
+            <h3 class="quiz-question">After you die and respawn, what happens to the enemies you'd already killed?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>They stay dead — respawn only restores the player.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>They all come back — respawn restores the captured spawn-sprite snapshot.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Half of them respawn at random positions.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Exactly. <code>confirm_pressed</code> returns 0 until <code>DEAD_FRAMES * DEAD_ANIM_MS</code> has elapsed, so a Space held from firing can't instantly dismiss the death screen."
+               data-explanation-wrong="The confirm is gated behind the death animation duration, so an already-held Space can't skip the screen the moment it appears.">
+            <h3 class="quiz-question">Why can't a held Space key instantly skip the death screen?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Space is ignored on the death screen entirely.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The death screen requires a mouse click, not a key.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span><code>confirm_pressed</code> waits until the death animation has fully played before accepting input.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="a"
+               data-explanation-right="Right. Advancing a floor frees only the floor heap (grid, doors, sprites, textures), parses the next map and re-inits — the MiniLibX window and weapon images are kept."
+               data-explanation-wrong="It's an in-place reload: only floor-specific data is freed and rebuilt. The window/MLX/weapons persist, so there's no flicker or re-open.">
+            <h3 class="quiz-question">What does advancing to the next floor NOT recreate?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The MiniLibX window and weapon images — they persist across floors.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The map grid — it's reused unchanged.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Nothing — the whole program restarts.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Correct. A cutscene started with <code>CUT_ACT_FINAL</code> sets <code>final_done = 1</code> and enters <code>GS_WIN</code>; <code>update_endgame</code> then returns early forever and <code>draw_endgame</code> loops the game-over frames."
+               data-explanation-wrong="The floor-3 finale uses <code>CUT_ACT_FINAL</code>, which sets <code>final_done</code> so the win state becomes terminal — it loops game-over art and never advances.">
+            <h3 class="quiz-question">What makes the floor-3 ending a terminal, looping game-over instead of a normal win?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>There simply is no floor 4 map, so it errors out.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span><code>CUT_ACT_FINAL</code> sets <code>final_done</code>; <code>update_endgame</code> then never advances and loops the game-over frames.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The program calls <code>exit()</code> after the cutscene.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module13')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module13')">Try Again</button>
+        </div>
+
+        <p class="module-outro">Last teaching module: the <code>.cub</code> file the bonus parser accepts, the Blake Stone asset layout, and how every system we've covered is wired into one frame.</p>
+      </div>
+    </section>

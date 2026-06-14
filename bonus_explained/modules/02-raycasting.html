@@ -1,0 +1,390 @@
+    <section class="module" id="module-2">
+      <div class="module-inner">
+        <p class="module-eyebrow">Module 2 · Raycasting math</p>
+        <h1 class="module-title">One beam, one grid, one wall stripe.</h1>
+        <p class="module-lede">
+          Think of the map as graph paper. You're a dot on it, looking in some direction. For each column on the screen, the renderer fires a beam from your dot, walks it cell-by-cell across the graph paper until it bumps into a wall cell, and asks: "how far did you go?" That distance becomes the height of a vertical stripe on the screen. Do that 1280 times and you have a frame.
+        </p>
+
+        <h2 class="screen-heading">The cast of characters in <code>t_ray</code></h2>
+        <p class="text-block">
+          Each beam carries its own little notebook of variables as it walks the grid. Before we touch the math, learn the words.
+        </p>
+
+        <div class="pattern-cards">
+          <div class="pattern-card" style="border-top: 3px solid #D94F30">
+            <div class="pattern-icon" style="background: #D94F30">🎯</div>
+            <h4 class="pattern-title">dir_x, dir_y</h4>
+            <p class="pattern-desc">Where the beam is pointing. A unit-ish vector built from the player's facing + a sideways shove for this particular column.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid #2A7B9B">
+            <div class="pattern-icon" style="background: #2A7B9B">📍</div>
+            <h4 class="pattern-title">map_x, map_y</h4>
+            <p class="pattern-desc">The integer grid cell the beam is currently sitting in. Bumped by ±1 each DDA step.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid #D4A843">
+            <div class="pattern-icon" style="background: #D4A843">📏</div>
+            <h4 class="pattern-title">delta_x, delta_y</h4>
+            <p class="pattern-desc">How far the beam travels to cross one full cell on the X axis (or Y axis). Constant for the whole trip.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid #2D8B55">
+            <div class="pattern-icon" style="background: #2D8B55">📐</div>
+            <h4 class="pattern-title">side_dist_x, side_dist_y</h4>
+            <p class="pattern-desc">Distance from the player to the <em>next</em> vertical grid line (or next horizontal grid line). Updated every step.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid #E06B56">
+            <div class="pattern-icon" style="background: #E06B56">🧭</div>
+            <h4 class="pattern-title">step_x, step_y</h4>
+            <p class="pattern-desc">+1 or −1 per axis. Tells the DDA which direction to step the cell index in.</p>
+          </div>
+          <div class="pattern-card" style="border-top: 3px solid #6E6E8C">
+            <div class="pattern-icon" style="background: #6E6E8C">🪞</div>
+            <h4 class="pattern-title">side</h4>
+            <p class="pattern-desc">0 if the last hop crossed a vertical grid line, 1 if it crossed a horizontal one. Decides which texture face was hit.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Step 1 — Aim the beam (<code>init_ray</code>)</h2>
+        <p class="text-block">
+          The screen column you're rendering (left edge, middle, right edge) decides how much the beam tilts off your forward direction. The player has two vectors: <code>dir</code> (forward) and <code>plane</code> (a perpendicular sideways vector whose length defines the <span class="term" data-definition="Field Of View. The angular width of what you can see. A wider FOV makes the world feel more 'fish-eye'; narrower feels more zoomed in. cub3D bakes the FOV into the length of the camera plane vector.">FOV</span>). The beam direction for column <code>x</code> is simply <code>dir + plane × camera_x</code>, where <code>camera_x</code> remaps the column to the range −1 → +1.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — ray_utils.c:22</span>
+<pre><code><span class="code-line"><span class="code-keyword">void</span>	<span class="code-function">init_ray</span>(t_ray *ray, t_player *p, <span class="code-keyword">int</span> x)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">double</span>	camera_x;</span>
+<span class="code-line"></span>
+<span class="code-line">	camera_x = 2.0 * x / WIN_W - 1.0;</span>
+<span class="code-line">	ray-&gt;dir_x = p-&gt;dir_x + p-&gt;plane_x * camera_x;</span>
+<span class="code-line">	ray-&gt;dir_y = p-&gt;dir_y + p-&gt;plane_y * camera_x;</span>
+<span class="code-line">	ray-&gt;map_x = (<span class="code-keyword">int</span>)p-&gt;pos_x;</span>
+<span class="code-line">	ray-&gt;map_y = (<span class="code-keyword">int</span>)p-&gt;pos_y;</span>
+<span class="code-line">	<span class="code-keyword">if</span> (ray-&gt;dir_x == 0)</span>
+<span class="code-line">		ray-&gt;delta_x = 1e30;</span>
+<span class="code-line">	<span class="code-keyword">else</span></span>
+<span class="code-line">		ray-&gt;delta_x = <span class="code-function">fabs</span>(1.0 / ray-&gt;dir_x);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (ray-&gt;dir_y == 0)</span>
+<span class="code-line">		ray-&gt;delta_y = 1e30;</span>
+<span class="code-line">	<span class="code-keyword">else</span></span>
+<span class="code-line">		ray-&gt;delta_y = <span class="code-function">fabs</span>(1.0 / ray-&gt;dir_y);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">For screen column <code>x</code>, build the beam.</p>
+              <p class="tl">First a scratch number.</p>
+              <p class="tl">Map column 0 → −1, middle column → 0, last column → +1.</p>
+              <p class="tl">Beam direction = forward vector + sideways plane vector × that scalar.</p>
+              <p class="tl">Same for the Y component — together they form the beam direction.</p>
+              <p class="tl">Remember which grid cell the player is currently sitting in.</p>
+              <p class="tl">Both coordinates of the player's cell.</p>
+              <p class="tl">If the beam has no X component, set delta to a huge sentinel.</p>
+              <p class="tl">(prevents division by zero in the next step)</p>
+              <p class="tl">Otherwise delta_x = how far the beam moves total per 1 unit of X. That's <code>|1 / dir_x|</code>.</p>
+              <p class="tl">Same sentinel guard for Y.</p>
+              <p class="tl">Same formula: delta_y = how far the beam moves per 1 unit of Y.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">📐</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why <code>|1 / dir_x|</code>?</strong>
+            <p>If the beam moves <code>dir_x</code> units along X for every 1 unit of beam-length, then it needs <code>1 / dir_x</code> units of beam-length to advance by 1 unit of X. That's exactly how far we have to travel to cross from one vertical grid line to the next. Absolute value because we only care about distance, not direction.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Step 2 — Distance to the first wall (<code>init_step_side</code>)</h2>
+        <p class="text-block">
+          Your player is somewhere inside a cell, not on a grid line. <code>side_dist_x</code> is "how far the beam has to travel before it crosses the very next vertical grid line." Symmetric story for <code>side_dist_y</code>. The math depends on whether the beam is pointing left or right (and up or down).
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — ray_utils.c:48</span>
+<pre><code><span class="code-line"><span class="code-keyword">if</span> (ray-&gt;dir_x &lt; 0)</span>
+<span class="code-line">{</span>
+<span class="code-line">	ray-&gt;step_x = -1;</span>
+<span class="code-line">	ray-&gt;side_dist_x = (p-&gt;pos_x - ray-&gt;map_x) * ray-&gt;delta_x;</span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-keyword">else</span></span>
+<span class="code-line">{</span>
+<span class="code-line">	ray-&gt;step_x = 1;</span>
+<span class="code-line">	ray-&gt;side_dist_x = (ray-&gt;map_x + 1.0 - p-&gt;pos_x) * ray-&gt;delta_x;</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Beam is pointing left.</p>
+              <p class="tl"></p>
+              <p class="tl">Each grid step shrinks <code>map_x</code> by 1.</p>
+              <p class="tl">Distance to the next vertical line = how far you are <em>past</em> the left edge of the cell, scaled by the per-unit cost.</p>
+              <p class="tl"></p>
+              <p class="tl">Otherwise it's pointing right.</p>
+              <p class="tl"></p>
+              <p class="tl">Each grid step grows <code>map_x</code> by 1.</p>
+              <p class="tl">Distance to the next vertical line = how far you are <em>before</em> the right edge of the cell, scaled.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Step 3 — Walk until you hit something (the DDA loop)</h2>
+        <p class="text-block">
+          <span class="term" data-definition="Digital Differential Analyzer — a classic algorithm for walking a straight line across a grid one cell at a time. Originally from line-drawing, repurposed here to find which grid cell a beam hits first.">DDA</span>
+          is one of those algorithms that sounds intimidating and turns out to be five lines. The whole idea: at every step, look at <code>side_dist_x</code> vs <code>side_dist_y</code>. Whichever is smaller is the nearer grid line. Cross it (bump the cell index, add the delta to that side_dist), and ask: did I land on a wall?
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — raycaster.c:19</span>
+<pre><code><span class="code-line"><span class="code-keyword">static</span> <span class="code-keyword">void</span>	<span class="code-function">advance_ray</span>(t_ray *ray)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">if</span> (ray-&gt;side_dist_x &lt; ray-&gt;side_dist_y)</span>
+<span class="code-line">	{</span>
+<span class="code-line">		ray-&gt;side_dist_x += ray-&gt;delta_x;</span>
+<span class="code-line">		ray-&gt;map_x += ray-&gt;step_x;</span>
+<span class="code-line">		ray-&gt;side = 0;</span>
+<span class="code-line">	}</span>
+<span class="code-line">	<span class="code-keyword">else</span></span>
+<span class="code-line">	{</span>
+<span class="code-line">		ray-&gt;side_dist_y += ray-&gt;delta_y;</span>
+<span class="code-line">		ray-&gt;map_y += ray-&gt;step_y;</span>
+<span class="code-line">		ray-&gt;side = 1;</span>
+<span class="code-line">	}</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Take one step of the DDA.</p>
+              <p class="tl"></p>
+              <p class="tl">The next vertical grid line is closer than the next horizontal one.</p>
+              <p class="tl"></p>
+              <p class="tl">Pay the cost: distance grows by one full cell-width worth of X-axis travel.</p>
+              <p class="tl">Bump the X cell index by +1 or −1.</p>
+              <p class="tl">Mark that we crossed an East/West face.</p>
+              <p class="tl"></p>
+              <p class="tl">Otherwise the next horizontal grid line is closer.</p>
+              <p class="tl"></p>
+              <p class="tl">Same idea on the Y axis.</p>
+              <p class="tl">Bump the Y cell index.</p>
+              <p class="tl">Mark that we crossed a North/South face.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The DDA loop and its stop condition</h2>
+        <p class="text-block">
+          The loop just keeps calling <code>advance_ray</code> and asking "did I land on a wall yet?" Walls (<code>'1'</code>) always stop it. Doors (<code>'D'</code>) call a special function we'll meet in Module 5. Open space (<code>'0'</code>) keeps the loop going.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — raycaster.c:45</span>
+<pre><code><span class="code-line"><span class="code-keyword">static</span> <span class="code-keyword">int</span>	<span class="code-function">dda_step</span>(t_cub *cub, t_ray *ray)</span>
+<span class="code-line">{</span>
+<span class="code-line">	t_map	*map;</span>
+<span class="code-line">	<span class="code-keyword">char</span>	c;</span>
+<span class="code-line">	<span class="code-keyword">double</span>	hit;</span>
+<span class="code-line"></span>
+<span class="code-line">	map = &amp;cub-&gt;map;</span>
+<span class="code-line">	<span class="code-function">advance_ray</span>(ray);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (ray-&gt;map_y &lt; 0 || ray-&gt;map_y &gt;= map-&gt;height || ray-&gt;map_x &lt; 0</span>
+<span class="code-line">		|| ray-&gt;map_x &gt;= (<span class="code-keyword">int</span>)<span class="code-function">ft_strlen</span>(map-&gt;grid[ray-&gt;map_y]))</span>
+<span class="code-line">		<span class="code-keyword">return</span> (1);</span>
+<span class="code-line">	c = map-&gt;grid[ray-&gt;map_y][ray-&gt;map_x];</span>
+<span class="code-line">	<span class="code-keyword">if</span> (c == <span class="code-string">'1'</span>)</span>
+<span class="code-line">		<span class="code-keyword">return</span> (1);</span>
+<span class="code-line">	<span class="code-keyword">if</span> (c == <span class="code-string">'D'</span>)</span>
+<span class="code-line">	{</span>
+<span class="code-line">		hit = <span class="code-function">ray_hit_fraction</span>(ray, &amp;cub-&gt;player);</span>
+<span class="code-line">		<span class="code-keyword">if</span> (<span class="code-function">door_allows_passage</span>(cub, ray-&gt;map_y, ray-&gt;map_x, hit))</span>
+<span class="code-line">			<span class="code-keyword">return</span> (0);</span>
+<span class="code-line">		ray-&gt;door = 1;</span>
+<span class="code-line">		ray-&gt;door_hit = hit;</span>
+<span class="code-line">		<span class="code-keyword">return</span> (1);</span>
+<span class="code-line">	}</span>
+<span class="code-line">	<span class="code-keyword">return</span> (0);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Take one DDA step. Return 1 if we stopped, 0 if we should keep going.</p>
+              <p class="tl"></p>
+              <p class="tl">Aliases for readability.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Shortcut to the map struct.</p>
+              <p class="tl">Cross into the next cell.</p>
+              <p class="tl">If we walked off the map → stop, treat as wall.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Read the character of the cell we just entered.</p>
+              <p class="tl">Solid wall → stop.</p>
+              <p class="tl"></p>
+              <p class="tl">Door cell — defer to the door logic.</p>
+              <p class="tl"></p>
+              <p class="tl">Compute where on the door face we hit (0..1).</p>
+              <p class="tl">Ask the door: am I in the retracted slit?</p>
+              <p class="tl">Yes → keep going. The ray passes through.</p>
+              <p class="tl">No → record it as a door hit and stop.</p>
+              <p class="tl">Remember the hit position for texturing.</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">Open floor — keep walking.</p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Step 4 — Real distance, no fisheye (<code>calc_draw_params</code>)</h2>
+        <p class="text-block">
+          The naive "Euclidean distance from player to hit point" produces a curved fisheye image — corners stretch outward. The fix is to use only the perpendicular component of the hit distance, measured along the player's forward direction. That's <code>side_dist − delta</code> on the axis that was crossed last. From there, screen height is just <code>WIN_H / perp_dist</code>: closer wall → bigger stripe.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — ray_utils.c:84</span>
+<pre><code><span class="code-line"><span class="code-keyword">if</span> (ray-&gt;side == 0)</span>
+<span class="code-line">	ray-&gt;perp_dist = ray-&gt;side_dist_x - ray-&gt;delta_x;</span>
+<span class="code-line"><span class="code-keyword">else</span></span>
+<span class="code-line">	ray-&gt;perp_dist = ray-&gt;side_dist_y - ray-&gt;delta_y;</span>
+<span class="code-line"><span class="code-keyword">if</span> (ray-&gt;perp_dist &lt; 0.001)</span>
+<span class="code-line">	ray-&gt;perp_dist = 0.001;</span>
+<span class="code-line">dw-&gt;height = (<span class="code-keyword">int</span>)(WIN_H / ray-&gt;perp_dist);</span>
+<span class="code-line">dw-&gt;start = horizon - dw-&gt;height / 2;</span>
+<span class="code-line">...</span>
+<span class="code-line">dw-&gt;end = horizon + dw-&gt;height / 2;</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Crossed a vertical grid line — perpendicular distance is along X.</p>
+              <p class="tl">Subtract one delta back off because we already over-stepped into the wall.</p>
+              <p class="tl">Crossed a horizontal grid line.</p>
+              <p class="tl">Same correction on Y.</p>
+              <p class="tl">Guard against divide-by-zero in the height math below.</p>
+              <p class="tl"></p>
+              <p class="tl">Stripe height in pixels: closer = taller, classic inverse-distance projection.</p>
+              <p class="tl">Center the stripe vertically around the horizon.</p>
+              <p class="tl"></p>
+              <p class="tl">End at horizon + half-height.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">🐟</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why perpendicular distance fixes fisheye</strong>
+            <p>If you used Euclidean distance, rays at the edge of your view would be longer than rays in the center even for the same flat wall — that's a bowed image. By measuring only the component along your forward axis, every column of a flat wall reports the same depth, and the wall renders flat.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Step 5 — Where on the texture did we hit? (<code>calc_wall_x</code>)</h2>
+        <p class="text-block">
+          Now we know which face of which wall got hit. We still need to know <em>where on that face</em> — left edge of the brick? right edge? — so we can pick the matching texture column. That's the fractional part of the hit position along whichever axis the beam was sliding along.
+        </p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">CODE — draw_wall.c:24</span>
+<pre><code><span class="code-line"><span class="code-keyword">double</span>	<span class="code-function">calc_wall_x</span>(t_ray *ray, t_player *p)</span>
+<span class="code-line">{</span>
+<span class="code-line">	<span class="code-keyword">double</span>	wall_x;</span>
+<span class="code-line"></span>
+<span class="code-line">	<span class="code-keyword">if</span> (ray-&gt;side == 0)</span>
+<span class="code-line">		wall_x = p-&gt;pos_y + ray-&gt;perp_dist * ray-&gt;dir_y;</span>
+<span class="code-line">	<span class="code-keyword">else</span></span>
+<span class="code-line">		wall_x = p-&gt;pos_x + ray-&gt;perp_dist * ray-&gt;dir_x;</span>
+<span class="code-line">	wall_x -= <span class="code-function">floor</span>(wall_x);</span>
+<span class="code-line">	<span class="code-keyword">return</span> (wall_x);</span>
+<span class="code-line">}</span></code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">For ray + player, return the hit position across the wall face (0..1).</p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl"></p>
+              <p class="tl">If we hit a vertical wall face, slide along the Y axis to find the hit point.</p>
+              <p class="tl">Player Y + how far the beam traveled × the beam's Y component.</p>
+              <p class="tl">If we hit a horizontal face, slide along X instead.</p>
+              <p class="tl">Symmetric formula.</p>
+              <p class="tl">Drop the integer part — we only want the fraction inside this 1×1 cell face.</p>
+              <p class="tl">Return that fraction. The texture sampler turns it into a column index.</p>
+              <p class="tl"></p>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">There's a sister helper for doors</h2>
+        <p class="text-block">
+          <code>ray_hit_fraction</code> does the same idea as <code>calc_wall_x</code>, but it runs <em>inside</em> the DDA — before <code>perp_dist</code> is even finalized. The door pass-through test needs the hit fraction the moment the beam enters a <code>'D'</code> cell, so this helper uses <code>side_dist − delta</code> directly to compute the entry distance instead of trusting <code>perp_dist</code>.
+        </p>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🔁</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why two near-identical helpers?</strong>
+            <p>It looks like duplication but it's an ordering constraint. <code>calc_wall_x</code> runs once per column <em>after</em> the DDA finishes, when <code>perp_dist</code> is set. <code>ray_hit_fraction</code> has to run <em>during</em> the DDA, mid-walk, on every door cell. Same math, different lifecycle. Keeping them separate lets the door code stay decoupled from wall-drawing.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">Pop quiz</h2>
+        <div class="quiz-container" id="quiz-module2">
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Yes. Each step picks the axis with the smaller side_dist, bumps the cell index, and pays the delta on that axis."
+               data-explanation-wrong="The DDA doesn't move on both axes at once — it picks the nearer grid line each step.">
+            <h3 class="quiz-question">In one DDA step, which axis gets bumped?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Both axes, always. The beam moves diagonally.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Whichever axis has the smaller <code>side_dist</code> right now.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Whichever axis the beam started closer to.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Right. Euclidean distance bows the image; only the forward-axis component keeps flat walls flat."
+               data-explanation-wrong="A wider FOV makes things look stretched, but the fisheye effect comes from using the wrong distance metric.">
+            <h3 class="quiz-question">A flat wall in front of you renders as a bowed, fish-eye curve. What was wrong?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The camera plane vector is too long, so the FOV is too wide.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The texture is being mirrored on one side.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The renderer used Euclidean distance instead of perpendicular distance.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Yes — <code>delta_x = |1 / dir_x|</code> is undefined when <code>dir_x = 0</code> (purely vertical beam), so the code sets a huge sentinel to short-circuit the side_dist comparison."
+               data-explanation-wrong="Performance and FP precision aren't the reason — the sentinel is to prevent a division by zero when the beam is axis-aligned.">
+            <h3 class="quiz-question">Why does <code>init_ray</code> set <code>delta_x = 1e30</code> when <code>dir_x</code> is exactly 0?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>For performance — large numbers are faster than infinity.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>To avoid dividing by zero in the perpendicular component.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>To cap floating-point precision errors at large distances.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module2')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module2')">Try Again</button>
+        </div>
+
+        <p class="module-outro">Next: how that player vector actually moves and rotates when you press a key.</p>
+      </div>
+    </section>

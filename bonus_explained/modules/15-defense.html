@@ -1,0 +1,195 @@
+    <section class="module" id="module-15">
+      <div class="module-inner">
+        <p class="module-eyebrow">Module 15 · Correction defense</p>
+        <h1 class="module-title">Now sit in the corrector's chair. Can you defend every system?</h1>
+        <p class="module-lede">
+          At a 42 evaluation the corrector won't ask you to recite the subject — they'll point at a behaviour and ask <em>"why does it do that, and where?"</em> This is a gauntlet of exactly those questions: cross-system, edge-case, and "prove you understand the wiring." No new theory here — if you read Modules 8–14, you can defend all of it. Take your time on each one and read the explanation either way.
+        </p>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🎓</div>
+          <div class="callout-content">
+            <strong class="callout-title">How to use this</strong>
+            <p>Answer out loud as if defending live, <em>then</em> check. The wrong-answer explanations name the file/function you'd point the corrector to — that's the muscle you actually need on the day.</p>
+          </div>
+        </div>
+
+        <h2 class="screen-heading">The gauntlet</h2>
+        <div class="quiz-container" id="quiz-module15">
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Right. <code>cub->zbuf</code> does double duty: the sprite/projectile column blitter uses it for occlusion, and <code>shoot_hitscan</code> uses it to reject targets behind walls (<code>depth &gt; zbuf[col]</code>). One buffer, two consumers, both filled by <code>cast_all_rays</code>."
+               data-explanation-wrong="The z-buffer is shared: the wall pass fills it, then BOTH the sprite blitter (occlusion) and hitscan (target rejection) read it. That dual use is why walls must render first.">
+            <h3 class="quiz-question">Name two completely different systems that both depend on <code>cub->zbuf</code>.</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The minimap and the head-bob.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Sprite/projectile occlusion AND player hitscan target rejection.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Door animation and enemy line-of-sight.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Exactly. <code>capture_spawn</code> <code>memcpy</code>s the whole sprite array into <code>spawn_sprites</code>, and <code>respawn</code> copies it back — so dying restores every enemy, not just your position."
+               data-explanation-wrong="It snapshots the full sprite array (plus the player), so respawn is a complete floor restart. That's why killed enemies return after you die.">
+            <h3 class="quiz-question">A corrector kills two enemies, then dies on purpose. The enemies are back. Why — and what was snapshotted?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Enemies respawn on a timer independent of the player.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Only the player position is saved; the enemies were never really dead.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span><code>capture_spawn</code> memcpy'd the entire sprite array; <code>respawn</code> restores that snapshot.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="a"
+               data-explanation-right="Right. <code>draw_one_proj</code> fills a throwaway <code>t_sprite</code> and calls the same <code>sprite_transform</code> + <code>draw_sprite_cols</code>, so projectiles inherit camera projection AND wall occlusion for free — only <code>proj_rect</code> differs (eye-level)."
+               data-explanation-wrong="Projectiles wrap themselves in a temporary <code>t_sprite</code> to reuse the sprite transform and z-buffered blitter; the sole override is the eye-level rectangle.">
+            <h3 class="quiz-question">Why don't projectiles need their own projection or occlusion code?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>They're wrapped in a temporary <code>t_sprite</code> and reuse the sprite pipeline.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>They're drawn as 2D HUD elements over the world.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>They never overlap walls, so occlusion isn't needed.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Correct. Both damage paths call <code>player_dmg(cub)</code> = <code>ATTACK_DMG × g_diff_mult[difficulty]</code> with multipliers {1.0, 1.5, 2.0}. The Difficulty menu writes <code>cub->difficulty</code>; that's the whole chain."
+               data-explanation-wrong="Trace it: Difficulty menu → <code>cub->difficulty</code> → <code>player_dmg</code> (×1.0/1.5/2.0 of <code>ATTACK_DMG</code>) → both the projectile impact and the invisible melee chip.">
+            <h3 class="quiz-question">Trace the path from picking "Gigachad" to taking more damage.</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Gigachad spawns more enemies, so you get hit more often.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span><code>cub->difficulty</code> → <code>player_dmg</code> scales <code>ATTACK_DMG</code> ×2.0 at both damage sites.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>It lowers <code>PLAYER_HP_MAX</code>.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Right. The win is wired through the money pickup: <code>reward_effect</code> on <code>SP_MONEY</code> either starts the floor-3 finale cutscene or calls <code>enter_state(GS_WIN)</code>. Kill boss → it drops money → you grab it → win."
+               data-explanation-wrong="There's no 'boss dead = win' check. Killing the boss makes it drop <code>SP_MONEY</code>; <em>collecting</em> the money is what triggers the win (or the finale on floor 3).">
+            <h3 class="quiz-question">What is the actual win condition — and where is it triggered?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The boss's HP reaching 0, checked in <code>shoot_hitscan</code>.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Killing every enemy on the floor (lives counter hits 0).</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Collecting the boss's money bag — <code>reward_effect</code> enters <code>GS_WIN</code> (or the finale cutscene).</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Correct. <code>init_sprites</code> allocates <code>sprite_count * 2</code> (<code>sprite_cap</code>). <code>spawn_reward</code> appends into the spare half and no-ops if full, so a dropped meat/money never reallocs or overflows."
+               data-explanation-wrong="The array is over-allocated to <code>sprite_cap = 2 × count</code> precisely so reward drops append safely. <code>spawn_reward</code> also guards against a full array.">
+            <h3 class="quiz-question">Reward pickups are appended to the sprite array at runtime. How is that safe without realloc?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>It reallocs the array each time a reward drops.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The array is pre-allocated to <code>sprite_cap = 2 × count</code>; appends use the spare half.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Rewards are stored in a separate fixed array.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="a"
+               data-explanation-right="Right. <code>is_blocked</code> (LOS) and <code>enemy_cell</code> (movement) both treat any <code>'D'</code> as solid regardless of open state — so enemies can't see or walk through doors, even open ones. Only the player opens doors."
+               data-explanation-wrong="For enemies a door is always solid: both the LOS check and the collision check reject any <code>'D'</code> cell. Enemies never open doors.">
+            <h3 class="quiz-question">An open door lets you walk through. Can an enemy chase you through it?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>No — enemy LOS and collision treat any <code>'D'</code> as solid, open or not.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Yes — enemies use the same passability test as the player.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Only the boss can.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Exactly. Projectiles check <code>door_is_open</code> and pass through open doors; enemy LOS does not — it blocks on any <code>'D'</code>. So a shot already in flight can travel through a door an enemy couldn't have seen you through."
+               data-explanation-wrong="They differ: <code>proj_blocked</code> only stops on a CLOSED door (<code>!door_is_open</code>), while <code>is_blocked</code> (LOS) stops on ANY door. Subtle but real.">
+            <h3 class="quiz-question">Do enemy line-of-sight and projectile collision treat doors identically?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Yes — both stop on any door.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Yes — both pass through any door.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>No — projectiles pass through OPEN doors; LOS blocks on any door.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Right. Sprites aren't z-tested against each other — <code>sort_sprites</code> orders them far→near and the painter's algorithm draws the nearest last. The z-buffer is only sprite-vs-wall."
+               data-explanation-wrong="Sprite-vs-sprite uses the painter's algorithm (far→near sort), not the z-buffer. The z-buffer only resolves sprite-vs-wall.">
+            <h3 class="quiz-question">Two enemies overlap. Two correct techniques are in play — which resolves sprite-vs-sprite?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The z-buffer compares their depths per pixel.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The far→near sort (painter's algorithm); the z-buffer is only sprite-vs-wall.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Whichever has the lower array index wins.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="a"
+               data-explanation-right="Correct. <code>hp = 1 + (t == SP_FLUID) * (BOSS_HP - 1)</code>: the boolean is 0 for normal enemies (hp 1) and 1 for the boss (hp = 1 + 7 = 8). Branchless, one line."
+               data-explanation-wrong="It's the branchless expression in <code>fill_sprites</code>: a boolean multiplied by <code>(BOSS_HP - 1)</code>, added to 1. Boss = 8, everyone else = 1.">
+            <h3 class="quiz-question">How does spawning give the boss 8 HP and everyone else 1, without an <code>if</code>?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span><code>hp = 1 + (t == SP_FLUID) * (BOSS_HP - 1)</code> — a branchless boolean trick.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>A lookup table indexed by sprite type.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The boss heals back to 8 each frame.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="c"
+               data-explanation-right="Right. Enemy tiles ('2','3',…) are rewritten to '0' in <code>fill_sprites</code> so the raycaster/collision ignore them; pickup tiles ('789P') stay so <code>weapon_pickup</code> can read which gun you grabbed, clearing them itself."
+               data-explanation-wrong="Enemies become '0' (they live in the sprite system, must not be walls); pickups stay as their letter so <code>weapon_pickup</code> can identify the weapon on walk-over.">
+            <h3 class="quiz-question">After parsing, enemy tiles vanish from the grid but weapon-pickup tiles don't. Why the difference?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Pickups are walls; enemies are floor.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>It's a bug — both should be erased.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Enemies must not be seen as walls (→'0'); pickup letters are read later by <code>weapon_pickup</code>.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="b"
+               data-explanation-right="Right. The HUD <code>hp</code> clamps at 0 and the death/win logic lives in <code>update_endgame</code> (state machine), not in the damage code. The damage functions just clamp; <code>update_endgame</code> reads hp ≤ 0 and enters <code>GS_DEAD</code>."
+               data-explanation-wrong="Damage code only clamps hp at 0; the actual death transition is in <code>update_endgame</code>, which flips to <code>GS_DEAD</code> when hp ≤ 0. Separation of concerns.">
+            <h3 class="quiz-question">Damage functions clamp hp at 0 but never trigger death. Where does dying actually happen?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>Inside <code>step_one</code> when the projectile lands.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>In <code>update_endgame</code>, which enters <code>GS_DEAD</code> when hp ≤ 0.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>In the render loop, when the health bar reaches red.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="a"
+               data-explanation-right="Right. <code>loop_hook</code> only calls <code>update_world</code> while <code>GS_PLAYING</code>; in cutscene/menu/dead/win states the simulation is frozen and only the relevant update + render run. One integer gates the whole engine."
+               data-explanation-wrong="The world is simulated only in <code>GS_PLAYING</code>. Other states freeze <code>update_world</code> and run their own update/draw — that's how a cutscene or death screen stops the action.">
+            <h3 class="quiz-question">Why does the world freeze during a cutscene or the death screen?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="a" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span><code>loop_hook</code> calls <code>update_world</code> only in <code>GS_PLAYING</code>; other states skip it.</span></button>
+              <button class="quiz-option" data-value="b" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>MiniLibX pauses the event loop.</span></button>
+              <button class="quiz-option" data-value="c" onclick="selectOption(this)"><div class="quiz-option-radio"></div><span>The enemies are individually told to stop.</span></button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module15')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module15')">Try Again</button>
+        </div>
+
+        <p class="module-outro">That's the whole bonus, end to end — sprites, enemies, AI, combat, HUD, game flow, and the format that drives it. If you can defend these thirteen questions, you can defend the project. Good luck at the eval.</p>
+      </div>
+    </section>
