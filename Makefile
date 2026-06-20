@@ -183,8 +183,12 @@ $(LIBFT):
 	@make -C $(LIBFT_DIR)
 
 $(MLX_LIB):
+	@if [ ! -d "$(MLX_DIR)" ]; then \
+		printf "$(RED)MiniLibX not found at $(MLX_DIR)$(RESET)\n"; \
+		exit 1; \
+	fi
 	@echo "$(MAGENTA)Building MinilibX...$(RESET)"
-	@make -C $(MLX_DIR)
+	@$(MAKE) -s -C $(MLX_DIR)
 
 $(NAME): $(OBJS)
 	@echo "$(MAGENTA)Linking $(NAME)...$(RESET)"
