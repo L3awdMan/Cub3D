@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   cleanup.c                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*   By: baelgadi <baelgadi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/10 00:10:29 by zotaj-di          #+#    #+#             */
-/*   Updated: 2026/06/10 00:10:29 by zotaj-di         ###   ########.fr       */
+/*   Updated: 2026/06/20 18:33:34 by baelgadi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -87,6 +87,8 @@ static void	free_bonus_data(t_cub *cub)
 		free(cub->pending_line);
 		cub->pending_line = NULL;
 	}
+	if (cub->parse_fd >= 0)
+		close(cub->parse_fd);
 	get_next_line(-42);
 }
 

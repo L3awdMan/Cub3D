@@ -6,7 +6,7 @@
 /*   By: baelgadi <baelgadi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/21 20:07:59 by baelgadi          #+#    #+#             */
-/*   Updated: 2026/04/12 10:02:28 by baelgadi         ###   ########.fr       */
+/*   Updated: 2026/06/20 18:28:15 by baelgadi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,6 +64,11 @@ void	cub_destroy(t_cub *cub)
 {
 	if (!cub)
 		return ;
+	if (cub->parse_fd >= 0)
+	{
+		close(cub->parse_fd);
+		cub->parse_fd = -1;
+	}
 	free_textures(cub);
 	if (cub->img.id && cub->mlx)
 		mlx_destroy_image(cub->mlx, cub->img.id);

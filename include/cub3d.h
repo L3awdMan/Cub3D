@@ -6,7 +6,7 @@
 /*   By: baelgadi <baelgadi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/21 16:28:27 by baelgadi          #+#    #+#             */
-/*   Updated: 2026/04/12 19:10:21 by baelgadi         ###   ########.fr       */
+/*   Updated: 2026/06/20 18:23:31 by baelgadi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -136,6 +136,11 @@ typedef struct s_draw
 	double	shade;
 }	t_draw;
 
+/**
+ * @brief Main cub struct
+ * 
+ * @note parse_fd is -1 if no fd is owned and >= 0 otherwise
+ */
 typedef struct s_cub
 {
 	void		*mlx;
@@ -145,6 +150,7 @@ typedef struct s_cub
 	t_player	player;
 	t_map		map;
 	int			keys[65536];
+	int			parse_fd;
 	/* SECTION 3 (include/cub3d.h):
 	 *   horizon = current vertical center of projection (WIN_H/2 ± bob).
 	 *   bob_t   = head-bob phase, only advanced while moving. */

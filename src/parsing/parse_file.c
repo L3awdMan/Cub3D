@@ -6,7 +6,7 @@
 /*   By: baelgadi <baelgadi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/01 10:02:59 by baelgadi          #+#    #+#             */
-/*   Updated: 2026/04/12 19:10:21 by baelgadi         ###   ########.fr       */
+/*   Updated: 2026/06/20 18:45:08 by baelgadi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -86,6 +86,7 @@ static void	post_map_check(t_cub *cub, char *line, int fd)
 		return ;
 	free(line);
 	close(fd);
+	cub->parse_fd = -1;
 	exit_error(cub, "Content after map");
 }
 
@@ -101,6 +102,7 @@ void	parse_file(t_cub *cub, char *path)
 	fd = open(path, O_RDONLY);
 	if (fd < 0)
 		exit_error(cub, "Cannot open file");
+	cub->parse_fd = fd;
 	line = get_next_line(fd);
 	while (line)
 	{
@@ -112,6 +114,7 @@ void	parse_file(t_cub *cub, char *path)
 		line = get_next_line(fd);
 	}
 	close(fd);
+	cub->parse_fd = -1;
 	if (!cub->map.grid)
 		exit_error(cub, "No map found in file");
 	validate_map(cub);

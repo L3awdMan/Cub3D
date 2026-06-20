@@ -6,7 +6,7 @@
 /*   By: baelgadi <baelgadi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/21 16:20:12 by baelgadi          #+#    #+#             */
-/*   Updated: 2026/04/12 19:05:16 by baelgadi         ###   ########.fr       */
+/*   Updated: 2026/06/20 18:21:43 by baelgadi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@
 void	cub_init(t_cub *cub)
 {
 	ft_bzero(cub, sizeof(t_cub));
+	cub->parse_fd = -1;
 }
 
 /**

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*   By: baelgadi <baelgadi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/10 00:10:27 by zotaj-di          #+#    #+#             */
-/*   Updated: 2026/06/10 00:10:27 by zotaj-di         ###   ########.fr       */
+/*   Updated: 2026/06/20 18:24:17 by baelgadi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@
 void	cub_init(t_cub *cub)
 {
 	ft_bzero(cub, sizeof(t_cub));
+	cub->parse_fd = -1;
 }
 
 /**
