@@ -6,7 +6,7 @@
 /*   By: baelgadi <baelgadi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/03/21 20:07:59 by baelgadi          #+#    #+#             */
-/*   Updated: 2026/06/20 18:28:15 by baelgadi         ###   ########.fr       */
+/*   Updated: 2026/06/21 23:02:18 by zotaj-di         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -83,4 +83,5 @@ void	cub_destroy(t_cub *cub)
 	if (cub->map.grid)
 		free_grid(&cub->map);
 	free_tex_paths(&cub->map);
+	get_next_line(-42);
 }
