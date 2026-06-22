@@ -132,9 +132,9 @@ ARFLAGS = rcs
 all:	$(NAME)
 
 $(NAME):	$(OBJS)
-	@echo "$(MAGENTA)⏳ Archiving to $(NAME)$(RESET)"
+	@printf "$(MAGENTA)⏳ Archiving to $(NAME)$(RESET)\n"
 	@$(AR) $(ARFLAGS) $(NAME) $(OBJS)
-	@echo "$(GREEN)✅ $(NAME) created$(RESET)"
+	@printf "$(GREEN)✅ $(NAME) created$(RESET)\n"
 
 # ─────────────────────────────────
 #            🧹 CLEANING
@@ -142,11 +142,11 @@ $(NAME):	$(OBJS)
 
 clean:
 	@rm -f $(OBJS) $(OBJS:.o=.d)
-	@echo "$(YELLOW)🧹 Libft objects and dependencies deleted (clean)$(RESET)"
+	@printf "$(YELLOW)🧹 Libft objects and dependencies deleted (clean)$(RESET)\n"
 
 fclean: clean
 	@rm -f $(NAME)
-	@echo "$(RED)❌ $(NAME) removed (fclean)$(RESET)"
+	@printf "$(RED)❌ $(NAME) removed (fclean)$(RESET)\n"
 
 re:	fclean all
 
@@ -155,11 +155,11 @@ re:	fclean all
 # ─────────────────────────────────
 
 help:
-	@echo "$(BLUE)Available targets:$(RESET)"
-	@echo "$(YELLOW)all      $(RESET)– Build libft.a"
-	@echo "$(YELLOW)clean    $(RESET)– Delete .o files"
-	@echo "$(YELLOW)fclean   $(RESET)– Full clean (including libft.a)"
-	@echo "$(YELLOW)re       $(RESET)– fclean + all"
+	@printf "$(BLUE)Available targets:$(RESET)\n"
+	@printf "$(YELLOW)all      $(RESET)– Build libft.a\n"
+	@printf "$(YELLOW)clean    $(RESET)– Delete .o files\n"
+	@printf "$(YELLOW)fclean   $(RESET)– Full clean (including libft.a)\n"
+	@printf "$(YELLOW)re       $(RESET)– fclean + all\n"
 
 -include $(DEPS)
 

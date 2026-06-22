@@ -179,7 +179,7 @@ $(BONUS_OBJ_DIR)/%.o: src_bonus/%.c
 all: $(LIBFT) $(MLX_LIB) $(NAME)
 
 $(LIBFT):
-	@echo "$(MAGENTA)Building libft...$(RESET)"
+	@printf "$(MAGENTA)Building libft...$(RESET)\n"
 	@make -C $(LIBFT_DIR)
 
 $(MLX_LIB):
@@ -187,13 +187,13 @@ $(MLX_LIB):
 		printf "$(RED)MiniLibX not found at $(MLX_DIR)$(RESET)\n"; \
 		exit 1; \
 	fi
-	@echo "$(MAGENTA)Building MinilibX...$(RESET)"
+	@printf "$(MAGENTA)Building MinilibX...$(RESET)\n"
 	@$(MAKE) -s -C $(MLX_DIR)
 
 $(NAME): $(OBJS)
-	@echo "$(MAGENTA)Linking $(NAME)...$(RESET)"
+	@printf "$(MAGENTA)Linking $(NAME)...$(RESET)\n"
 	@$(CC) $(CFLAGS) $(OBJS) -L$(LIBFT_DIR) -lft $(MLX_FLAGS) -o $(NAME)
-	@echo "$(GREEN)✅ $(NAME) ready$(RESET)"
+	@printf "$(GREEN)✅ $(NAME) ready$(RESET)\n"
 
 # SECTION 4 (Makefile): real bonus rule. Builds cub3D_bonus from the src_bonus/
 # tree, sharing libft and MinilibX with the mandatory build. Objects and deps
@@ -201,10 +201,10 @@ $(NAME): $(OBJS)
 bonus: $(LIBFT) $(MLX_LIB) $(BONUS_NAME)
 
 $(BONUS_NAME): $(BONUS_OBJS)
-	@echo "$(MAGENTA)Linking $(BONUS_NAME)...$(RESET)"
+	@printf "$(MAGENTA)Linking $(BONUS_NAME)...$(RESET)\n"
 	@$(CC) $(CFLAGS) $(BONUS_OBJS) -L$(LIBFT_DIR) -lft $(MLX_FLAGS) \
 		-o $(BONUS_NAME)
-	@echo "$(GREEN)✅ $(BONUS_NAME) ready$(RESET)"
+	@printf "$(GREEN)✅ $(BONUS_NAME) ready$(RESET)\n"
 
 # ─────────────────────────────────
 #            CLEANING
@@ -213,12 +213,12 @@ $(BONUS_NAME): $(BONUS_OBJS)
 clean:
 	@make -C $(LIBFT_DIR) clean
 	@rm -rf $(OBJ_DIR) $(BONUS_OBJ_DIR)
-	@echo "$(YELLOW)🧹 Objects and dependencies deleted (clean)$(RESET)"
+	@printf "$(YELLOW)🧹 Objects and dependencies deleted (clean)$(RESET)\n"
 
 fclean: clean
 	@make -C $(LIBFT_DIR) fclean
 	@rm -f $(NAME) $(BONUS_NAME)
-	@echo "$(RED)❌ $(NAME) removed (fclean)$(RESET)"
+	@printf "$(RED)❌ $(NAME) removed (fclean)$(RESET)\n"
 
 re: fclean all
 
@@ -227,12 +227,12 @@ re: fclean all
 # ─────────────────────────────────
 
 help:
-	@echo "$(BLUE)Available targets:$(RESET)"
-	@echo "$(YELLOW)all      $(RESET)– Build $(NAME)"
-	@echo "$(YELLOW)bonus    $(RESET)– Build $(BONUS_NAME)"
-	@echo "$(YELLOW)clean    $(RESET)– Delete .o and .d files"
-	@echo "$(YELLOW)fclean   $(RESET)– Full clean (including binaries)"
-	@echo "$(YELLOW)re       $(RESET)– fclean + all"
+	@printf "$(BLUE)Available targets:$(RESET)\n"
+	@printf "$(YELLOW)all      $(RESET)– Build $(NAME)\n"
+	@printf "$(YELLOW)bonus    $(RESET)– Build $(BONUS_NAME)\n"
+	@printf "$(YELLOW)clean    $(RESET)– Delete .o and .d files\n"
+	@printf "$(YELLOW)fclean   $(RESET)– Full clean (including binaries)\n"
+	@printf "$(YELLOW)re       $(RESET)– fclean + all\n"
 
 -include $(DEPS)
 -include $(BONUS_DEPS)

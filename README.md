@@ -6,16 +6,9 @@
 
 # Description
 
-cub3D is a textured raycasting engine inspired by Wolfenstein 3D, written in C
-with MiniLibX. The mandatory binary `cub3D` reads a `.cub` scene file, opens a 
-window, and renders a 1st person view using a DDA raycaster.
+cub3D is a textured raycasting engine inspired by Wolfenstein 3D, written in C with MiniLibX. The mandatory binary `cub3D` reads a `.cub` scene file, opens a  window, and renders a 1st person view using a DDA raycaster.
 
-The bonus binary `cub3D_bonus` adds an entire game on top of the engine:
-a [Blake Stone: Aliens of Gold](https://en.wikipedia.org/wiki/Blake_Stone:_Aliens_of_Gold)
-parody campaign with 3 floors, enemies,
-weapons, sliding doors, sprites, a circular minimap, cutscenes, mission
-briefings, a HUD, endgame screens and mouse-look. See [Chapter 20](#chapter-20-bonus) for the
-full feature list and the story manual.
+The bonus binary `cub3D_bonus` adds an entire game on top of the engine: a [Blake Stone: Aliens of Gold](https://en.wikipedia.org/wiki/Blake_Stone:_Aliens_of_Gold) parody campaign with 3 floors, enemies, weapons, sliding doors, sprites, a circular minimap, cutscenes, mission briefings, a HUD, endgame screens and mouse-look. See [Chapter 20](#chapter-20-bonus) for the full feature list and the story manual.
 
 # Instructions
 
@@ -39,11 +32,140 @@ the mandatory tree and vice versa.
 ## Run
 
 ```
-    ./cub3D       maps/subject.cub
-    ./cub3D_bonus maps/blake_stone_floor1.cub
+    ./cub3D       maps/good/subject.cub
+    ./cub3D_bonus maps/bonus/blake_stone_floor1.cub
 ```
 
-Any `.cub` file is accepted as long as it follows the subject's format.
+## Testing
+
+The `maps/` folder is organised to make the evaluator's life easier.
+
+```
+maps/
+├── good/   valid maps, must all open and render
+├── bad/    invalid inputs for whatever reason
+└── bonus/  Blake Stone parody, use only with ./cub3D_bonus
+```
+
+### ➢ Mandatory: valid maps (`maps/good/`)
+
+Every file here must launch the engine, render, and quit cleanly on `ESC` or red-cross.
+
+| File | What it covers |
+|---|---|
+| `subject.cub` | Reference map from the subject |
+| `room_shambles.cub` | Small enclosed room |
+| `example.cub` | Basic, used in README for explanations |
+| `player_north.cub` / `player_south.cub` / `player_east.cub` / `player_west.cub` | One per start orientation |
+| `with_spaces.cub` | Irregular shape with leading spaces |
+| `order_shuffled.cub` | Texture / colour identifiers given in arbitrary order |
+| `large.cub` | Larger map |
+
+> [!NOTE]
+> Any `.cub` file is accepted as long as it follows the subject's format.
+
+
+### ➢ Mandatory: invalid maps (`maps/bad/`)
+
+Each file targets a single subject failure case.
+
+**Identifiers / config**
+
+| File | Failure |
+|---|---|
+| `missing_no.cub` | No `NO` texture |
+| `missing_f.cub` | No `F` floor colour |
+| `duplicate_no.cub` | `NO` declared twice |
+| `duplicate_f.cub` | `F` declared twice |
+| `unknown_id.cub` | Identifier `XX` not recognised |
+| `texture_missing.cub` | `SO` line has no path |
+| `texture_nonexistent.cub` | `NO` points to a file that doesnt exist |
+
+**RGB**
+
+| File | Failure |
+|---|---|
+| `rgb_missing_component.cub` | Only 2 components |
+| `rgb_too_many.cub` | 4 components |
+| `rgb_negative.cub` | Negative value |
+| `rgb_over_255.cub` | Value > 255 |
+| `rgb_non_digit.cub` | Non numeric component |
+| `rgb_empty_component.cub` | `F 220,,0` |
+
+**Map**
+
+| File | Failure |
+|---|---|
+| `not_closed.cub` | Wall cell replaced by `0` |
+| `hole_via_space.cub` | Space embedded inside a wall opens the map |
+| `no_player.cub` | Map has no `N`/`S`/`E`/`W` |
+| `multi_player.cub` | Map has 2 player starts |
+| `invalid_char.cub` | Map contains `X` |
+| `empty_file.cub` | Zero byte file |
+| `no_map.cub` | No map block. |
+| `element_after_map.cub` | Extra `F` line after the map |
+| `map_before_config.cub` | Map appears before the texture / color block |
+| `wrong_extension.txt` | Not a `.cub` file |
+
+### ➢ Argument failure cases (not files)
+
+These belong on the command line, not in a map:
+
+```sh
+./cub3D                              # no argument
+./cub3D maps/good/subject.cub extra  # too many arguments
+./cub3D maps/does_not_exist.cub      # nonexistent file
+./cub3D maps/good                    # path is a directory
+```
+
+### <ins>➢ All tests at once</ins>
+
+```sh
+# Test every bad map at once
+for f in maps/bad/*.cub maps/bad/*.txt; do
+    printf "%-40s " "$f"
+    ./cub3D "$f" 2>&1 | tr '\n' ' '
+    echo
+done
+
+# Every good map must open a window (Launch + kill after 1s)
+for f in maps/good/*.cub; do
+    echo "───── $f ─────"
+    timeout 1 ./cub3D "$f"
+done
+```
+
+### ➢ Bonus campaign (`maps/bonus/`)
+
+```sh
+./cub3D_bonus maps/bonus/blake_stone_floor1.cub
+```
+
+<p align="center">
+  <img src="https://files.baderlab.dev/42/cub3d/CubCd.png" width="300" alt="Bocal Blaster: Peer to Feer">
+</p>
+
+<p align="center">
+  <em>Bocal Blaster: Peer to Feer</em>
+</p>
+
+> "★★★★★ A revolutionary peer-to-peer experience.
+> I was assigned a 0 by Moulinette X and I have never felt more alive."
+> — **GameStud**
+
+> "This Game Really Makes You Feel Like Batman"
+> — **IGL**
+
+> "Bocal Blaster sets a new standard for the genre.
+> The raycasting is so smooth I forgot I had a defense in 4 hours."
+> — **The Stud Critic**
+
+> "I have not slept in three days. Send help."
+> — **Anonymous 42 Student**
+
+> "10/10.
+> Goated."
+> — **42chan**
 
 ## Controls
 
@@ -148,7 +270,7 @@ This is raycasting. 1280 vertical stripes creating the illusion of 3D.
 Here's the complete execution flow, from start to finish:
 
 ```
-./cub3D maps/subject.cub
+./cub3D maps/good/subject.cub
         │
         ▼
   ── main() ────────────────────────────────────────────────────────────────────
@@ -239,7 +361,7 @@ Cub3d/
 
 A `.cub` file has two sections: <ins>configuration lines</ins> and a <ins>map grid</ins>.
 
-Here's an example (`maps/1.cub`):
+Here's an example (`maps/good/example.cub`):
 ```
 NO ./textures/north.xpm       North facing wall texture
 SO ./textures/south.xpm       South facing wall texture
