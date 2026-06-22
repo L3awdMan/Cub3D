@@ -1,7 +1,7 @@
 *This project has been created as part of the 42 curriculum by zotaj-di, baelgadi.*
 
 <p align="center">
-  <img src="https://files.baderlab.dev/42/cub3d/cub3D_badge.png" width="150" alt="Cub3D Badge With Bonus">
+  <img src="./img/cub3D_badge.png" width="150" alt="Cub3D Badge With Bonus">
 </p>
 
 # Description
@@ -15,7 +15,8 @@ The bonus binary `cub3D_bonus` adds an entire game on top of the engine: a [Blak
 ## Build
 
 > [!CAUTION]
-> MiniLibX is not bundled. Before `make`, place an X11 MiniLibX build at `./mlx/`
+> MiniLibX is not bundled.\
+> Before `make`, place an X11 MiniLibX build at `./mlx/`\
 > (for example `git clone https://github.com/42Paris/minilibx-linux.git mlx`).
 
 ```
@@ -142,21 +143,21 @@ done
 ```
 
 <p align="center">
-  <img src="https://files.baderlab.dev/42/cub3d/CubCd.png" width="300" alt="Bocal Blaster: Peer to Feer">
+  <img src="./img/CubCd.png" width="300" alt="Bocal Blaster: Peer to Feer">
 </p>
 
 <p align="center">
   <em>Bocal Blaster: Peer to Feer</em>
 </p>
 
-> "★★★★★ A revolutionary peer-to-peer experience.
+> "★★★★★ A revolutionary peer-to-peer experience.\
 > I was assigned a 0 by Moulinette X and I have never felt more alive."
 > — **GameStud**
 
 > "This Game Really Makes You Feel Like Batman"
 > — **IGL**
 
-> "Bocal Blaster sets a new standard for the genre.
+> "Bocal Blaster sets a new standard for the genre.\
 > The raycasting is so smooth I forgot I had a defense in 4 hours."
 > — **The Stud Critic**
 
@@ -197,7 +198,7 @@ Every accepted line was read, tested and committed by the authors.
 ---
 
 <p align="center">
-  <img src="https://files.baderlab.dev/42/cub3d/Cub3D.png" width="300" alt="Mandatory walkthrough">
+  <img src="./img/Cub3D.png" width="300" alt="Mandatory walkthrough">
 </p>
 
 # Complete mandatory walkthrough
@@ -260,7 +261,7 @@ Now visualize yourself shooting <ins>1280</ins> laser beams (1 for each pixel co
 This is raycasting. 1280 vertical stripes creating the illusion of 3D.
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/topdown-screen.png" width="600">
+	<img src="./img/topdown-screen.png" width="600">
 </p>
 
 ---
@@ -442,7 +443,7 @@ To write a pixel at position (x, y), we need to know:
 <ins>> How pixel addressing works:</ins> (not mandatory to know but useful to better visualize)
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/memory-layout.png" width="600">
+	<img src="./img/memory-layout.png" width="600">
 </p>
 
 `line_len` is not always 4 (because of padding), but let's say here it is, so:\
@@ -491,7 +492,7 @@ typedef struct s_map
 **parsed_flags** uses a bitmask to track which of the 6 required elements have been found:
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/all-bits-set.png" width="600">
+	<img src="./img/all-bits-set.png" width="600">
 </p>
 
 **Color packing**: a color like R=100, G=100, B=100 is stored as one integer:
@@ -713,7 +714,7 @@ Parses lines like `"F 100,100,100"`:
 3. Pack into one integer: `(r << 16) | (g << 8) | b`
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/colors-hex.png" width="600">
+	<img src="./img/colors-hex.png" width="600">
 </p>
 
 ## 7.4: parse_map.c (reading the grid)
@@ -731,7 +732,7 @@ Parses lines like `"F 100,100,100"`:
 # Chapter 8: Map validation
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/illegal-map.png" width="400">
+	<img src="./img/illegal-map.png" width="400">
 </p>
 
 A map is valid if and only if:
@@ -743,13 +744,13 @@ A map is valid if and only if:
 For every walkable cell, check all 8 surrounding cells. If any neighbor is out of bounds, a space, or beyond the end of a shorter row, the map is "open" and invalid.
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/8neighbors.png" width="600">
+	<img src="./img/8neighbors.png" width="600">
 </p>
 
 <ins>Why 8 neighbors instead of 4?</ins> To catch diagonal leaks:
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/diagonal-leaks.png" width="600">
+	<img src="./img/diagonal-leaks.png" width="600">
 </p>
 
 The implementation iterates `dy` from -1 to +1 and `dx` from -1 to +1, skipping the center (0,0).\
@@ -787,19 +788,19 @@ void	init_player(t_cub *cub, int y, int x, char c)
 
 If the direction vector and the camera plane have the same length (so camera plane's length = 1), the FOV (field of vision) will be 90°:
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/camdir1.png" width="300">
+	<img src="./img/camdir1.png" width="300">
 </p>
 
 If the camera plane is larger than the direction vector, the FOV will be larger than 90° and we will have a wider vision, like zooming out:
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/camdir2.png" width="300">
+	<img src="./img/camdir2.png" width="300">
 </p>
 
 We will go with camera plane length **0.66** for ~66° FOV (like Wolfenstein 3D).
 
 When the player rotates, the camera rotates and both the direction vector AND the plane vector have to be rotated:
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/camdir3.gif" width="300">
+	<img src="./img/camdir3.gif" width="300">
 </p>
 
 Since they rotate with the same values, the perpendicularity remains.\
@@ -830,13 +831,13 @@ Draw a circle with **radius 1** (the "unit circle"). Pick any angle `a` measured
 - **Y coordinate = sin(a)**
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/trigono1.png">
+	<img src="./img/trigono1.png">
 </p>
 
 So when we rotate a vector by angle a, the tip travels along the circle:
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/trigono2.png" width="600">
+	<img src="./img/trigono2.png" width="600">
 </p>
 
 ---
@@ -848,7 +849,7 @@ This is the mathematical foundation of everything.
 ## 11.1: Coordinate system
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/xy-axis.png" width="400">
+	<img src="./img/xy-axis.png" width="400">
 </p>
 
 ## 11.2: Direction vector
@@ -863,7 +864,7 @@ Reminder that the camera plane is a vector perpendicular to the direction.\
 It's an imaginary line segment in front of the player, stretching across their field of view.
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/fov_diagram.png" width="800">
+	<img src="./img/fov_diagram.png" width="800">
 </p>
 
 The FOV is calculated using basic trigonometry (with arctangent):
@@ -891,7 +892,7 @@ This maps:
 ## 11.5: What the ray direction means
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/ray_direction.png" width="600">
+	<img src="./img/ray_direction.png" width="600">
 </p>
 
 A ray direction vector like `(0.6, 0.8)` means:
@@ -902,7 +903,7 @@ This decomposition is the foundation of the DDA algorithm
 ## 11.6: Delta distances (How far to cross one grid cell?)
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/delta_diagram.png" width="800">
+	<img src="./img/delta_diagram.png" width="800">
 </p>
 
 For the DDA algorithm, we need to know: <ins>how far does a ray travel to cross one full grid cell?</ins>
@@ -922,7 +923,7 @@ To advance X by 1 full unit (one grid cell), the ray must travel `1 / 0.6 = 1.66
 We use `1e30` (a very VERY large number) instead of infinity. (because with infinity we can run into problems)
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/novertical.png" width="600">
+	<img src="./img/novertical.png" width="600">
 </p>
 
 Remember: **delta values are constant for a given ray**.\
@@ -966,7 +967,7 @@ void	init_ray(t_ray *ray, t_player *p, int x)
 
 For example, let's take the player at pos = (3.7, 2.3), looking right and down:
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/side_dist.png" width="800">
+	<img src="./img/side_dist.png" width="800">
 </p>
 
 ## 12.3: The DDA loop
@@ -1004,13 +1005,13 @@ If not, we add the corresponding delta and repeat.
 ### Vertical wall hit (side = 0)
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/dda-side0.png" width="1000">
+	<img src="./img/dda-side0.png" width="1000">
 </p>
 
 ### Horizontal wall hit (side = 1)
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/dda-side1.png" width="1000">
+	<img src="./img/dda-side1.png" width="1000">
 </p>
 
 The `side` variable is crucial, as it tells us which axis the ray crossed when it hit the wall. This determines:
@@ -1030,7 +1031,7 @@ After DDA, we now know which cell was hit and which side. We need <ins>distance<
 This causes a "fish-eye" effect where walls curve outward at screen edges.
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/fish-eye.png" width="800">
+	<img src="./img/fish-eye.png" width="800">
 </p>
 
 ✅ **The right approach:** <ins>Perpendicular distance</ins> projected onto the player's forward direction. This makes walls appear straight.
@@ -1043,7 +1044,7 @@ else
 ```
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/nofish-eye.png" width="800">
+	<img src="./img/nofish-eye.png" width="800">
 </p>
 
 <ins>Why subtract delta?</ins>\
@@ -1099,7 +1100,7 @@ For 1280×720 = 921,600 pixels per frame!!! Instead, we write to a memory buffer
 Each column is split into three parts:
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/colX_drawing.png" width="1000">
+	<img src="./img/colX_drawing.png" width="1000">
 </p>
 
 ---
@@ -1118,7 +1119,7 @@ After this, we can read texture pixels with the same `data + (y * line_len + x *
 ## 14.2: Texture X (where on the wall did we hit?)
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/wall_x.png" width="600">
+	<img src="./img/wall_x.png" width="600">
 </p>
 
 If we hit a vertical wall (side = 0), the X coordinate of the hit is exactly on a grid line (an integer).\
@@ -1143,7 +1144,7 @@ tex_x = (int)(wall_x * tex->width);
 Without correction, adjacent walls facing opposite directions would show the texture mirrored:
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/mirror-correction.png" width="1000">
+	<img src="./img/mirror-correction.png" width="1000">
 </p>
 
 ```c
@@ -1383,7 +1384,7 @@ static void	move_along(t_cub *cub, double cub->player.dir_x, double cub->player.
 This is because when we advance forward or backward, we advance in the DIR direction.
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/moveWS.gif" width="300">
+	<img src="./img/moveWS.gif" width="300">
 </p>
 
 With `sign = 1` we advance forward and with `sign = -1` backward.
@@ -1409,7 +1410,7 @@ static void	move_along(t_cub *cub, double cub->player.plane_x, double cub->playe
 This is because when we strafe to the left or to the right, we advance PERPENDICULAR to the DIR direction. (and it just happens that plane is always perpendicular to dir)
 
 <p align="center">
-	<img src="https://files.baderlab.dev/42/cub3d/moveAD.gif" width="500">
+	<img src="./img/moveAD.gif" width="500">
 </p>
 
 With `sign = 1` we advance to the right and with `sign = -1` to the left.
@@ -1581,7 +1582,7 @@ extras:
 
 <p align="center">
 	<a href="./bocal_blaster.pdf">
-	<img src="https://files.baderlab.dev/42/cub3d/comic.png" height="600" alt="Peer to feer">
+	<img src="./img/comic.png" height="600" alt="Peer to feer">
 	</a>
 </p>
 
