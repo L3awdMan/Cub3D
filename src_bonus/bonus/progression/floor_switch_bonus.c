@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   floor_switch_bonus.c                               :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*   By: baelgadi <baelgadi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/10 00:08:01 by zotaj-di          #+#    #+#             */
-/*   Updated: 2026/06/10 00:08:03 by zotaj-di         ###   ########.fr       */
+/*   Updated: 2026/06/22 18:39:28 by baelgadi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,9 +25,9 @@
 static char	*next_floor_map(int floor)
 {
 	if (floor == 1)
-		return ("maps/blake_stone_floor2.cub");
+		return ("maps/bonus/blake_stone_floor2.cub");
 	if (floor == 2)
-		return ("maps/blake_stone_floor3.cub");
+		return ("maps/bonus/blake_stone_floor3.cub");
 	return (NULL);
 }
 

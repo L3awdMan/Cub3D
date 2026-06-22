@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   restart_bonus.c                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: zotaj-di <zotaj-di@learner.42.tech>        +#+  +:+       +#+        */
+/*   By: baelgadi <baelgadi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/06/10 00:08:07 by zotaj-di          #+#    #+#             */
-/*   Updated: 2026/06/10 00:08:07 by zotaj-di         ###   ########.fr       */
+/*   Updated: 2026/06/22 18:39:32 by baelgadi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@ void	restart_game(t_cub *cub)
 	cub->cutscene.final_done = 0;
 	cub->cutscene.next_action = 0;
 	cub->gameover_sel = GAMEOVER_RETRY;
-	parse_file(cub, "maps/blake_stone_floor1.cub");
+	parse_file(cub, "maps/bonus/blake_stone_floor1.cub");
 	reinit_floor(cub);
 	start_cutscene(cub, CUT_BEGIN_F1, CUT_ACT_PLAY);
 }
