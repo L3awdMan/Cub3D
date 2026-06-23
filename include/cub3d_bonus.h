@@ -944,7 +944,7 @@ void			parse_file(t_cub *cub, char *path);
 
 /* ────────────── parse_map.c ──────────────── */
 
-void			store_map_lines(t_cub *cub, char *first, int fd);
+void			store_map_lines(t_cub *cub, int fd);
 
 /* ────────────── validate_map.c ──────────────── */
 

@@ -112,22 +112,22 @@ static void	add_map_line(t_cub *cub, char *line)
 
 /**
  * @brief Reads all map lines from the first one to EOF
+ *
+ * @note Reuses cub->pending_line (owned by parse_file) as the current-line
+ * slot so a mid-map exit_error frees exactly one tracked pointer in
+ * cub_destroy. On a blank line the loop stops leaving cub->pending_line on
+ * that blank line; parse_file frees it and re-reads, routing any trailing
+ * content to post_map_check().
  */
-void	store_map_lines(t_cub *cub, char *first, int fd)
+void	store_map_lines(t_cub *cub, int fd)
 {
-	char	*line;
-
-	add_map_line(cub, first);
-	line = get_next_line(fd);
-	while (line)
+	add_map_line(cub, cub->pending_line);
+	free(cub->pending_line);
+	cub->pending_line = get_next_line(fd);
+	while (cub->pending_line && cub->pending_line[0] != '\n')
 	{
-		if (line[0] == '\n')
-		{
-			free(line);
-			break ;
-		}
-		add_map_line(cub, line);
-		free(line);
-		line = get_next_line(fd);
+		add_map_line(cub, cub->pending_line);
+		free(cub->pending_line);
+		cub->pending_line = get_next_line(fd);
 	}
 }

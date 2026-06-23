@@ -46,24 +46,24 @@ static int	is_map_line(char *line)
 /**
  * @brief Dispatches a configuration line to the corresponding parser
  */
-static void	dispatch_line(t_cub *cub, char *line, int *fd)
+static void	dispatch_line(t_cub *cub, int fd)
 {
 	int	id;
 
-	id = identify_element(line);
+	id = identify_element(cub->pending_line);
 	if (id >= TEX_NO && id <= TEX_EA)
-		parse_texture(cub, line, id);
+		parse_texture(cub, cub->pending_line, id);
 	else if (id == C_FLOOR)
-		parse_color(cub, line, 0);
+		parse_color(cub, cub->pending_line, 0);
 	else if (id == C_CEIL)
-		parse_color(cub, line, 1);
+		parse_color(cub, cub->pending_line, 1);
 	else if (id == ELEM_FLOOR)
-		parse_floor(cub, line);
-	else if (is_map_line(line))
+		parse_floor(cub, cub->pending_line);
+	else if (is_map_line(cub->pending_line))
 	{
 		if (cub->map.parsed_flags != FLAG_ALL)
 			exit_error(cub, "Map found before all elements");
-		store_map_lines(cub, line, *fd);
+		store_map_lines(cub, fd);
 	}
 	else
 		exit_error(cub, "Unknown identifier in config");
@@ -77,19 +77,15 @@ static void	dispatch_line(t_cub *cub, char *line, int *fd)
  * a blank line midway in the map ends store_map_lines(), so the next
  * non-blank line lands here as "Content after map" instead of being lost.
  */
-static void	post_map_check(t_cub *cub, char *line, int fd)
+static void	post_map_check(t_cub *cub)
 {
 	int	i;
 
 	i = 0;
-	while (line[i] && ft_isspace(line[i]))
+	while (cub->pending_line[i] && ft_isspace(cub->pending_line[i]))
 		i++;
-	if (line[i] == '\0')
+	if (cub->pending_line[i] == '\0')
 		return ;
-	free(line);
-	cub->pending_line = NULL;
-	close(fd);
-	cub->parse_fd = -1;
 	exit_error(cub, "Content after map");
 }
 
@@ -98,25 +94,22 @@ static void	post_map_check(t_cub *cub, char *line, int fd)
  */
 void	parse_file(t_cub *cub, char *path)
 {
-	int		fd;
-	char	*line;
+	int	fd;
 
 	check_extension(cub, path);
 	fd = open(path, O_RDONLY);
 	if (fd < 0)
 		exit_error(cub, "Cannot open file");
 	cub->parse_fd = fd;
-	line = get_next_line(fd);
-	while (line)
+	cub->pending_line = get_next_line(fd);
+	while (cub->pending_line)
 	{
-		cub->pending_line = line;
 		if (cub->map.grid)
-			post_map_check(cub, line, fd);
-		else if (line[0] != '\n')
-			dispatch_line(cub, line, &fd);
-		cub->pending_line = NULL;
-		free(line);
-		line = get_next_line(fd);
+			post_map_check(cub);
+		else if (cub->pending_line[0] != '\n')
+			dispatch_line(cub, fd);
+		free(cub->pending_line);
+		cub->pending_line = get_next_line(fd);
 	}
 	close(fd);
 	cub->parse_fd = -1;

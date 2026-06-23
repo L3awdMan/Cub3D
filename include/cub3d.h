@@ -151,6 +151,7 @@ typedef struct s_cub
 	t_map		map;
 	int			keys[65536];
 	int			parse_fd;
+	char		*line;
 	/* SECTION 3 (include/cub3d.h):
 	 *   horizon = current vertical center of projection (WIN_H/2 ± bob).
 	 *   bob_t   = head-bob phase, only advanced while moving. */
@@ -212,7 +213,7 @@ void			parse_file(t_cub *cub, char *path);
 
 /* ────────────── parse_map.c ──────────────── */
 
-void			store_map_lines(t_cub *cub, char *first, int fd);
+void			store_map_lines(t_cub *cub, int fd);
 
 /* ────────────── validate_map.c ──────────────── */
 

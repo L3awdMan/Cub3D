@@ -83,5 +83,7 @@ void	cub_destroy(t_cub *cub)
 	if (cub->map.grid)
 		free_grid(&cub->map);
 	free_tex_paths(&cub->map);
+	free(cub->line);
+	cub->line = NULL;
 	get_next_line(-42);
 }
