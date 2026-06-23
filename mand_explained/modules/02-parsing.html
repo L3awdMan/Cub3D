@@ -1,0 +1,297 @@
+<section class="module" id="module-2" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">02</span>
+      <h1 class="module-title">Parsing &amp; Validation</h1>
+      <p class="module-subtitle">Half the evaluation lives here. The evaluator will feed your program broken maps and expect a clean <code>Error\n</code> every single time.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Anatomy of a .cub file</h2>
+        <p>Six configuration elements (any order, any number of blank lines between them), then the map — which must come <strong>last</strong>.</p>
+
+        <div class="badge-list">
+          <div class="badge-item">
+            <code class="badge-code">NO ./path.xpm</code>
+            <span class="badge-desc">North wall texture — stored in <code>tex_path[TEX_NO]</code> (index 0)</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">SO / WE / EA</code>
+            <span class="badge-desc">South, West, East textures — indices 1, 2, 3</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">F 220,100,0</code>
+            <span class="badge-desc">Floor color: three comma-separated ints, each 0–255</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">C 225,30,0</code>
+            <span class="badge-desc">Ceiling color, same rules</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">1 0 N space</code>
+            <span class="badge-desc">Map rows: walls, floor, exactly one spawn (N/S/E/W), spaces = void outside the playable area</span>
+          </div>
+        </div>
+
+        <p>Each parsed element flips one bit in <code>parsed_flags</code> — a <span class="term" data-definition="An int used as an array of booleans: bit 0 = NO texture seen, bit 1 = SO, ... bit 5 = ceiling color. Setting: flags |= (1 &lt;&lt; bit). Testing: flags &amp; (1 &lt;&lt; bit). All six present = 0b111111 = 63 = FLAG_ALL.">bitmask</span>. Duplicate identifier? The bit is already set → error. Map starts but <code>parsed_flags != 63</code>? "Map found before all elements" → error.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">One line comes in — who handles it?</h2>
+        <p><code>parse_file()</code> reads line by line with <code>get_next_line</code> and dispatches. Watch the parsing crew handle a file:</p>
+
+        <div class="chat-window" id="chat-module2">
+          <div class="chat-messages">
+            <div class="chat-message" data-msg="0" data-sender="parsefile" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">PF</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">parse_file</span>
+                <p>Got a line: <code>"NO ./textures/wall_n.xpm"</code>. identify_element, what is this?</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="identify" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">ID</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">identify_element</span>
+                <p>Starts with "NO" followed by whitespace → that's TEX_NO (0). Send it to parse_texture.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="texture" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">TX</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">parse_texture</span>
+                <p>Bit 0 not set yet, good — no duplicate. Trimming the path, storing it, flipping bit 0. parsed_flags is now 000001.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="parsefile" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">PF</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">parse_file</span>
+                <p>Next: <code>"F 220,100,0"</code>. identify says C_FLOOR → parse_color, you're up.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="4" data-sender="color" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-4)">CL</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-4)">parse_color</span>
+                <p>Split on commas → exactly 3 parts, each all-digits, 1–3 chars, value ≤ 255. Packed into one int: (220&lt;&lt;16) | (100&lt;&lt;8) | 0. Bit 4 set.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="5" data-sender="parsefile" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">PF</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">parse_file</span>
+                <p>Now a line starting with '1'... that's a map line. Wait — parsed_flags must be 63 first. It is. store_map_lines, take over the file descriptor.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="6" data-sender="storemap" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-5)">MP</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-5)">store_map_lines</span>
+                <p>Reading rows until EOF or a blank line. Each row: chars checked (012 NSEW space tab CR), newline trimmed, tabs normalized, appended to the grid. Grid grows row by row.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="7" data-sender="validate" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">VM</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">validate_map</span>
+                <p>My turn, after EOF. Every walkable cell gets its 8 neighbors checked, spawn count must be exactly 1. One open edge and I call exit_error.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-typing" id="chat-module2-typing" style="display:none">
+            <div class="chat-avatar" id="chat-module2-typing-avatar">?</div>
+            <div class="chat-typing-dots">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
+          </div>
+
+          <div class="chat-controls">
+            <button class="btn chat-next-btn">Next Message</button>
+            <button class="btn chat-all-btn">Play All</button>
+            <button class="btn chat-reset-btn">Replay</button>
+            <span class="chat-progress"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The map grid: jagged on purpose</h2>
+        <p>Rows are stored <em>as-is</em> (newline trimmed, tabs → spaces). Rows can have different lengths — the code never pads them. That's why <strong>every</strong> place that indexes the grid first checks <code>x &lt; ft_strlen(grid[y])</code>: the DDA loop, collision, and validation all do this.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/parsing/validate_map.c</span>
+            <pre><code>
+<span class="code-line"><span class="code-keyword">if</span> (ny &lt; <span class="code-number">0</span> || ny &gt;= cub-&gt;map.height)</span>
+<span class="code-line">    <span class="code-function">exit_error</span>(cub, <span class="code-string">"Map is not enclosed by walls"</span>);</span>
+<span class="code-line">row_len = <span class="code-function">ft_strlen</span>(cub-&gt;map.grid[ny]);</span>
+<span class="code-line"><span class="code-keyword">if</span> (nx &lt; <span class="code-number">0</span> || nx &gt;= row_len)</span>
+<span class="code-line">    <span class="code-function">exit_error</span>(cub, <span class="code-string">"Map is not enclosed by walls"</span>);</span>
+<span class="code-line"><span class="code-keyword">if</span> (cub-&gt;map.grid[ny][nx] == <span class="code-string">' '</span>)</span>
+<span class="code-line">    <span class="code-function">exit_error</span>(cub, <span class="code-string">"Map is not enclosed by walls"</span>);</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">A neighbor above the first row or below the last row means a walkable cell touches the void → not enclosed.</p>
+              <p class="tl">Rows are jagged, so measure <em>this</em> row's actual length.</p>
+              <p class="tl">A neighbor past the end of a short row is also the void → same error.</p>
+              <p class="tl">And a literal space inside the map counts as void too. Walkable cell touching space = leak in the walls.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why 8 neighbors instead of flood fill?</strong>
+            <p>Both prove enclosure. The invariant here: <em>every walkable cell (0 or spawn) must be fully surrounded by non-void cells — including diagonals</em>. If a walkable cell can "see" void in any of 8 directions, the map leaks. It's a local check, O(8) per cell, no recursion, no visited array — simpler to defend at evaluation than flood fill, and it catches diagonal gaps that 4-neighbor checks miss.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The error contract</h2>
+        <p>Every failure path goes through one function. No exceptions, no leaks.</p>
+
+        <div class="step-cards">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>Print <code>Error\n</code> + message to stderr</strong>
+              <p>Exactly the subject format: <code>ft_putstr_fd("Error\n", 2)</code> then the specific reason.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong><code>cub_destroy()</code> — free everything that exists</strong>
+              <p>Textures, image, window, display, grid rows, texture paths. Every free is guarded, and <code>cub_init</code>'s zeroing guarantees the guards are meaningful even on the earliest error.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong><code>exit(1)</code></strong>
+              <p>Non-zero status. The evaluator will run your program under valgrind on a broken map — this path must be leak-free too.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-content">
+            <strong class="callout-title">Known leak window — be ready for this question</strong>
+            <p>When <code>exit_error</code> fires mid-parsing, the <em>current</em> <code>get_next_line</code> line and GNL's internal stash can still be allocated. <code>post_map_check()</code> shows the careful pattern: it frees the line and closes the fd <em>before</em> calling <code>exit_error</code>. If valgrind shows a few "still reachable" bytes from GNL on error paths, know exactly where they come from and why.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Checkpoint: the evaluator opens a text editor</h2>
+        <p>They <em>will</em> create hostile maps live. Predict the outcome.</p>
+
+        <div class="quiz-container" id="quiz-module2">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Right. The player spawn 'N' is walkable, so check_cell runs on it — its north-east diagonal neighbor is a space → 'Map is not enclosed by walls'. The 8-neighbor check catches diagonal leaks."
+               data-explanation-wrong="Walk it through validate_map: 'N' is walkable (is_walkable returns 1 for spawns too). check_cell tests all 8 neighbors including diagonals, and one diagonal is a space character...">
+            <h3 class="quiz-question">The evaluator edits the map so the spawn cell has a wall above and to the right, but a <em>space</em> in the diagonal between them. What happens?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Accepted — diagonals don't matter, you can't move diagonally through a corner</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Rejected — <code>check_cell</code> tests all 8 neighbors of every walkable cell, including diagonals</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Crash — the diagonal index reads out of bounds</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="Exactly. store_map_lines stops at the first blank line; then parse_file's post_map_check sees a non-blank line after the map already exists → 'Content after map'. A map split by a blank line is two maps — invalid."
+               data-explanation-wrong="Follow the flow: store_map_lines breaks on a blank line. Back in parse_file, map.grid is now set, so every following line goes to post_map_check. The second half of the map is non-blank content after the map...">
+            <h3 class="quiz-question">A blank line in the <em>middle</em> of the map, with more map rows after it. Outcome?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The blank line is skipped and the map continues normally</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Only the first half is kept; the rest is silently ignored</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Error: the map ends at the blank line, and the remaining rows trigger "Content after map"</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="Correct — parse_component trims whitespace then requires only digits, 1-3 of them, value ≤ 255. '+220', '22 0' or '256' all fail → 'Invalid color format'. And ft_split also rejects a missing or extra component."
+               data-explanation-wrong="Look at is_valid_digits + parse_component in parse_colors.c: after trimming, every char must be a digit (so no signs), length 1-3, and the value must land in [0, 255].">
+            <h3 class="quiz-question">"F 220,100,256" — what does your parser do?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Error: each component must be all-digits, 1–3 chars, and ≤ 255 — 256 fails the range check</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>256 wraps around to 0 because of the byte shift</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Accepted — RGB values are clamped to 255</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Right. Two spawn characters means init_player runs twice (last one wins for position) but the spawn counter ends at 2, and validate_map exits with 'Map must have exactly one player spawn'."
+               data-explanation-wrong="Check the end of validate_map: a spawn counter is incremented for every N/S/E/W found, and the rule is spawn != 1 → error. Zero spawns fails the same check.">
+            <h3 class="quiz-question">The map contains both an <code>N</code> and an <code>E</code>. What happens?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The first spawn wins, the second is treated as floor</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Error — the spawn counter ends at 2, and <code>spawn != 1</code> is rejected</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Error only if the two spawns point in different directions</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module2')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module2')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

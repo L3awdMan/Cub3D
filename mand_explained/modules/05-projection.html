@@ -1,0 +1,230 @@
+<section class="module" id="module-5" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">05</span>
+      <h1 class="module-title">Projection, Fisheye &amp; Textures</h1>
+      <p class="module-subtitle">The ray hit a wall. Now: how tall is the stripe, why isn't it curved, and which texture pixels fill it?</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Fisheye: the bug you fix by never creating it</h2>
+        <p>Use the straight-line (<span class="term" data-definition="The ordinary straight-line distance: sqrt(dx² + dy²). Using it for wall height makes walls bulge, because side rays travel further to reach the SAME flat wall than the center ray does.">Euclidean</span>) distance to the wall and a flat wall renders as a barrel: edge rays are longer than the center ray even when the wall is straight ahead, so edge columns draw shorter. The cure: measure distance <strong>perpendicular to the camera plane</strong> — how far the wall is "in front of" you, ignoring the sideways component.</p>
+
+        <svg viewBox="0 0 640 270" style="width:100%; height:auto; display:block; margin: var(--space-6) 0; background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);" role="img" aria-label="Diagram comparing Euclidean ray distance with perpendicular distance to the camera plane">
+          <!-- wall -->
+          <rect x="60" y="30" width="520" height="18" fill="#2C2A28"/>
+          <text x="290" y="24" font-family="DM Sans, sans-serif" font-size="13" fill="#6B6560">flat wall</text>
+          <!-- camera plane line -->
+          <line x1="120" y1="200" x2="520" y2="200" stroke="#2A7B9B" stroke-width="2.5"/>
+          <text x="528" y="205" font-family="JetBrains Mono, monospace" font-size="13" fill="#2A7B9B">camera plane</text>
+          <!-- player -->
+          <circle cx="320" cy="200" r="7" fill="#D94F30"/>
+          <!-- center ray -->
+          <line x1="320" y1="200" x2="320" y2="48" stroke="#D94F30" stroke-width="2"/>
+          <!-- edge ray euclidean -->
+          <line x1="320" y1="200" x2="140" y2="48" stroke="#C93B3B" stroke-width="2" stroke-dasharray="6 4"/>
+          <text x="150" y="130" font-family="DM Sans, sans-serif" font-size="13" fill="#C93B3B" transform="rotate(-40 170 130)">Euclidean: longer ✗</text>
+          <!-- perp distance bracket -->
+          <line x1="140" y1="48" x2="140" y2="200" stroke="#2D8B55" stroke-width="2"/>
+          <text x="84" y="130" font-family="DM Sans, sans-serif" font-size="13" fill="#2D8B55">perp: same ✓</text>
+          <text x="330" y="130" font-family="DM Sans, sans-serif" font-size="13" fill="#6B6560">both columns must draw the same height</text>
+        </svg>
+
+        <p>The elegant part of this implementation: the perpendicular distance is <em>never computed from the Euclidean one</em>. It falls straight out of the DDA bookkeeping:</p>
+
+        <div style="background: var(--color-bg-code); color:#CDD6F4; border-radius: var(--radius-md); padding: var(--space-6); font-family: var(--font-mono); font-size: var(--text-sm); line-height: 2.1; box-shadow: var(--shadow-md);">
+          <span style="color:#6C7086">// hit = pos + t·rayDir. The scaled side_dists measure exactly t,</span><br>
+          <span style="color:#6C7086">// because crossing 1 unit of x costs Δt = 1/|dir_x| (our delta).</span><br>
+          <span style="color:#6C7086">// The loop overshoots by one step, so undo it:</span><br>
+          t = side_dist − delta &nbsp;<span style="color:#6C7086">(for the axis that was hit)</span><br>
+          <br>
+          <span style="color:#6C7086">// perpendicular distance = (hit − pos) projected onto unit dir:</span><br>
+          perpDist = t·rayDir · dir = t·(dir + plane·camera_x) · dir<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = t·(|dir|² + camera_x·(plane·dir)) = t·(1 + 0) = <span style="color:#A6E3A1">t</span>
+        </div>
+
+        <p>Because <code>|dir| = 1</code> and <code>plane ⊥ dir</code>, the projection collapses to <code>t</code> itself. So <code>perp_dist = side_dist − delta</code> — one subtraction, fisheye-free by construction. This derivation is the strongest answer in the entire evaluation.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">From distance to a stripe on screen</h2>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/execution/ray_utils.c — calc_draw_params</span>
+            <pre><code>
+<span class="code-line"><span class="code-keyword">if</span> (ray-&gt;side == <span class="code-number">0</span>)</span>
+<span class="code-line">    ray-&gt;perp_dist = ray-&gt;side_dist_x - ray-&gt;delta_x;</span>
+<span class="code-line"><span class="code-keyword">else</span></span>
+<span class="code-line">    ray-&gt;perp_dist = ray-&gt;side_dist_y - ray-&gt;delta_y;</span>
+<span class="code-line"><span class="code-keyword">if</span> (ray-&gt;perp_dist &lt; <span class="code-number">0.001</span>)</span>
+<span class="code-line">    ray-&gt;perp_dist = <span class="code-number">0.001</span>;</span>
+<span class="code-line">dw-&gt;height = (<span class="code-keyword">int</span>)(WIN_H / ray-&gt;perp_dist);</span>
+<span class="code-line">dw-&gt;start = horizon - dw-&gt;height / <span class="code-number">2</span>;</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Hit through a vertical line? Then the x-runner's bookkeeping holds the answer…</p>
+              <p class="tl">…subtract one delta to undo the loop's final overshoot. That IS the perpendicular distance.</p>
+              <p class="tl">Same on the y side for horizontal hits.</p>
+              <p class="tl">Clamp near-zero distance — standing flush against a wall must not divide by ~0.</p>
+              <p class="tl">Similar triangles: a 1-unit-tall wall at distance d projects to WIN_H/d pixels. At d = 1 the wall exactly fills the 720px screen.</p>
+              <p class="tl">Center the stripe on the horizon (WIN_H/2 in the mandatory spec) — equal wall above and below eye level. start/end are then clamped to the screen.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why height = WIN_H / perp_dist?</strong>
+            <p>Walls are 1 unit tall and the projection plane sits at distance 1 (the dir length). Similar triangles: projected size / screen scale = real size / distance ⇒ pixels = WIN_H · (1 / perp_dist). Double the distance, half the stripe. Linear, no trig.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Which texture, and which column of it?</h2>
+        <p>Two decisions. <strong>Which texture:</strong> <code>side</code> + step sign. Hit a vertical line while stepping left (<code>step_x &lt; 0</code>)? You're looking at the block's east-facing side from the west → <code>WE</code>. The other three follow the same logic. <strong>Which column of the texture:</strong> where along the wall's face the hit landed:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/render/draw_wall.c — calc_wall_x / calc_tex_x</span>
+            <pre><code>
+<span class="code-line"><span class="code-keyword">if</span> (ray-&gt;side == <span class="code-number">0</span>)</span>
+<span class="code-line">    wall_x = p-&gt;pos_y + ray-&gt;perp_dist * ray-&gt;dir_y;</span>
+<span class="code-line"><span class="code-keyword">else</span></span>
+<span class="code-line">    wall_x = p-&gt;pos_x + ray-&gt;perp_dist * ray-&gt;dir_x;</span>
+<span class="code-line">wall_x -= <span class="code-function">floor</span>(wall_x);</span>
+<span class="code-line">tex_x = (<span class="code-keyword">int</span>)(wall_x * tex-&gt;width);</span>
+<span class="code-line"><span class="code-keyword">if</span> (ray-&gt;side == <span class="code-number">0</span> &amp;&amp; ray-&gt;dir_x &gt; <span class="code-number">0</span>)</span>
+<span class="code-line">    tex_x = (tex-&gt;width - <span class="code-number">1</span>) - tex_x;</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Hit a vertical wall face? The hit's x is a known grid line — the interesting coordinate is y.</p>
+              <p class="tl">Reconstruct it: pos + t·rayDir, using perp_dist as t (the same t from the projection proof — one more payoff of the scaled units).</p>
+              <p class="tl">Horizontal face: symmetric, take the x coordinate.</p>
+              <p class="tl"></p>
+              <p class="tl">Keep only the fractional part: 0.0 = one edge of this wall block, 1.0 = the other. That's the horizontal position ON the wall face.</p>
+              <p class="tl">Scale [0,1) into texture pixel columns.</p>
+              <p class="tl">Mirror correction: depending on which side you view the face from, "left along the wall" flips. Without this, opposing faces render mirror-imaged — text on walls reads backwards.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Painting the column: texture stepping</h2>
+        <p>The stripe is <code>height</code> pixels tall but the texture is 64. One texel per screen pixel, walked with a fixed-point style accumulator — no division per pixel:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/render/draw_wall.c — draw_wall_stripe</span>
+            <pre><code>
+<span class="code-line">dw.step = (<span class="code-keyword">double</span>)tex-&gt;height / dw.height;</span>
+<span class="code-line">dw.pos = (dw.start - cub-&gt;horizon + dw.height / <span class="code-number">2</span>) * dw.step;</span>
+<span class="code-line"><span class="code-function">draw_ceiling</span>(cub, x, dw.start);</span>
+<span class="code-line"><span class="code-function">draw_tex_col</span>(cub, x, &amp;dw, tex);</span>
+<span class="code-line"><span class="code-function">draw_floor</span>(cub, x, dw.end + <span class="code-number">1</span>);</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">How many texture rows per screen row. Far wall: stripe is short, step &gt; 1, texture is skimmed. Close wall: step &lt; 1, texels repeat.</p>
+              <p class="tl">The anchor trick: if the wall is taller than the screen, start was clamped to 0 — so we must begin sampling partway INTO the texture, not at row 0. This computes exactly how far in. Unclamped stripes give 0 here.</p>
+              <p class="tl">Solid ceiling color from the top of the screen down to the stripe.</p>
+              <p class="tl">Then the textured wall: each row reads texel (tex_x, (int)pos), advances pos by step.</p>
+              <p class="tl">Then solid floor color down to the bottom. Three bands = the entire column drawn, every pixel exactly once.</p>
+            </div>
+          </div>
+        </div>
+
+        <p>One byte-level detail to own: <code>put_px</code> computes <code>data + y·line_len + x·(bpp/8)</code> and writes through an <code>unsigned int *</code> cast. <code>line_len</code> is the <em>padded</em> bytes-per-row MLX reports — using <code>WIN_W·4</code> instead is the classic skewed-image bug. And writing without the cast would store a single byte instead of 4 (blue-only screen).</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Checkpoint: projection questions</h2>
+
+        <div class="quiz-container" id="quiz-module5">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Exactly. Walls would bow outward like a barrel: edge rays travel further to the same flat wall, so edge columns get smaller height values. Straight ahead it's subtle; close to a long wall it's unmistakable."
+               data-explanation-wrong="Euclidean distance is larger for edge rays than the center ray even on a flat wall directly ahead. Larger distance → shorter stripe → the wall's silhouette curves...">
+            <h3 class="quiz-question">The evaluator asks: "What would I see if you used the Euclidean ray length instead of perp_dist?"</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Nothing changes — both distances are equal for every ray</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Fisheye: flat walls bulge in the middle of the screen and shrink at the edges, warping as you turn</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Walls render upside down because the sign of the distance flips</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="Right. side = 1 means a horizontal grid line was crossed, and step_y = −1 means the ray was traveling north (y decreases upward on the map). The wall is therefore NORTH of the player — and by the subject's convention, walls you see when looking north wear the NO texture. side picks the axis, the step sign picks which of the two faces."
+               data-explanation-wrong="select_texture: side == 1 selects between NO and SO using step_y. step_y < 0 → TEX_NO, else TEX_SO. side + step sign uniquely determine the wall face.">
+            <h3 class="quiz-question">A ray ends with <code>side = 1</code> and <code>step_y = −1</code>. Which texture does <code>select_texture</code> return?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span><code>TEX_NO</code> — horizontal face, ray stepping north</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span><code>TEX_WE</code> — side 1 means West</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span><code>TEX_SO</code> — negative step always means South</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="Exactly. start clamps to 0 and end to WIN_H−1, so the visible part is drawn — and dw.pos's anchor formula (start − horizon + height/2)·step computes how deep into the texture the visible top edge is, so the texture doesn't stretch or jump."
+               data-explanation-wrong="Two mechanisms cooperate: start/end clamping keeps the loop on-screen, and the dw.pos anchor starts sampling partway into the texture. Without the second part, the texture would visibly slide when the stripe gets clipped.">
+            <h3 class="quiz-question">You stand almost touching a wall — the stripe height is 5000 pixels on a 720-pixel screen. What stops this from breaking?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>perp_dist is clamped to a minimum of 1.0, so stripes never exceed the screen</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>put_px silently discards every off-screen pixel, so drawing 5000 rows is fine, just slow</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>start/end are clamped to the screen, and dw.pos is pre-advanced so sampling begins mid-texture — the visible slice shows the correct part of the texture</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module5')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module5')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

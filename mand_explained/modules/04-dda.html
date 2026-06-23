@@ -1,0 +1,266 @@
+<section class="module" id="module-4" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">04</span>
+      <h1 class="module-title">DDA: Walking the Grid</h1>
+      <p class="module-subtitle">Given a ray, find the first wall it hits — exactly, in a handful of additions per cell. This is the algorithm the project is named for.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Why not just step in tiny increments?</h2>
+        <p>The naive approach — advance the ray by 0.01 and check the cell each time — has two fatal flaws, and naming them is a great eval answer:</p>
+
+        <div class="pattern-cards stagger-children">
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-error)">
+            <div class="pattern-icon" style="background: var(--color-error)">🕳️</div>
+            <h4 class="pattern-title">It can miss</h4>
+            <p class="pattern-desc">A fixed step can jump clean over a wall corner or land just past a thin boundary. Any step size is either wrong somewhere or absurdly slow.</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-error)">
+            <div class="pattern-icon" style="background: var(--color-error)">🐢</div>
+            <h4 class="pattern-title">It's slow</h4>
+            <p class="pattern-desc">Hundreds of samples per ray × 1280 rays × 60 fps. DDA does it in one operation per <em>cell crossed</em> — typically 5–20 per ray.</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-success)">
+            <div class="pattern-icon" style="background: var(--color-success)">📐</div>
+            <h4 class="pattern-title">DDA is exact</h4>
+            <p class="pattern-desc">A ray only ever enters a new cell by crossing a vertical or horizontal grid line. So only check those crossings — every cell on the path, none skipped.</p>
+          </div>
+        </div>
+
+        <p>The <span class="term" data-definition="Digital Differential Analyzer. The 'differential' is the constant increment: crossing consecutive vertical grid lines always costs the same distance along the ray (delta_x), same for horizontal (delta_y). Precompute both, then the loop is pure addition and comparison.">DDA</span> insight: the ray's crossings with vertical lines are evenly spaced along the ray, and so are its crossings with horizontal lines. Precompute the two spacings, then race them against each other.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">delta_dist — the only real derivation</h2>
+        <p>How far do you travel <em>along the ray</em> to move exactly 1 unit in x? Pythagoras on the triangle with legs 1 and dir_y/dir_x:</p>
+
+        <div style="background: var(--color-bg-code); color:#CDD6F4; border-radius: var(--radius-md); padding: var(--space-6); font-family: var(--font-mono); font-size: var(--text-base); line-height: 2.1; box-shadow: var(--shadow-md);">
+          deltaDistX = √(1 + dir_y²/dir_x²) = |rayDir| / |dir_x|<br>
+          deltaDistY = √(1 + dir_x²/dir_y²) = |rayDir| / |dir_y|<br>
+          <span style="color:#6C7086">// divide both by |rayDir| — every distance scales uniformly:</span><br>
+          deltaDistX = <span style="color:#A6E3A1">|1 / dir_x|</span> &nbsp;&nbsp; deltaDistY = <span style="color:#A6E3A1">|1 / dir_y|</span>
+        </div>
+
+        <p>Dividing all distances by <code>|rayDir|</code> is legal because DDA only ever <em>compares</em> side_dists and the renderer only needs distance in consistent units. The payoff is huge: the code never normalizes the ray, and the distance that falls out at the end is already the <strong>perpendicular</strong> distance the projection wants (module 5 proves it).</p>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Defend this exact line: <code>delta_x = fabs(1.0 / ray-&gt;dir_x)</code></strong>
+            <p>"Distance along the ray per unit of x, expressed in units of the ray's own length." If <code>dir_x == 0</code> the ray is perfectly vertical and never crosses a vertical line — the code stores <code>1e30</code> so the X side always loses the comparison, without ever producing <code>inf</code> or dividing by zero.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">side_dist — getting to the first grid line</h2>
+        <p><code>delta</code> is the spacing <em>between</em> crossings; <code>side_dist</code> is the head start: distance from the player to the <em>first</em> crossing on each axis. It depends on where the player stands inside the cell, and on the ray's sign:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/execution/ray_utils.c — init_step_side</span>
+            <pre><code>
+<span class="code-line"><span class="code-keyword">if</span> (ray-&gt;dir_x &lt; <span class="code-number">0</span>)</span>
+<span class="code-line">{</span>
+<span class="code-line">    ray-&gt;step_x = -<span class="code-number">1</span>;</span>
+<span class="code-line">    ray-&gt;side_dist_x = (p-&gt;pos_x - ray-&gt;map_x) * ray-&gt;delta_x;</span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-keyword">else</span></span>
+<span class="code-line">{</span>
+<span class="code-line">    ray-&gt;step_x = <span class="code-number">1</span>;</span>
+<span class="code-line">    ray-&gt;side_dist_x = (ray-&gt;map_x + <span class="code-number">1.0</span> - p-&gt;pos_x) * ray-&gt;delta_x;</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Ray points left (−x): the next vertical line is the cell's LEFT edge.</p>
+              <p class="tl">So each DDA step on this axis will decrement map_x.</p>
+              <p class="tl">The fraction of a cell between the player and that left edge is (pos_x − map_x); multiply by delta_x to convert "cells of x" into "distance along the ray".</p>
+              <p class="tl">Ray points right (+x): the next vertical line is the RIGHT edge.</p>
+              <p class="tl">Steps will increment map_x.</p>
+              <p class="tl">Distance to the right edge is (map_x + 1 − pos_x) cells of x — note the +1.0, the single most bug-prone constant in the whole raycaster.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The loop: two runners racing</h2>
+        <p>Picture two runners on the same ray: one stops at every vertical grid line, one at every horizontal line. At each iteration, whoever is <em>behind</em> takes their next stride. Whichever runner moves, that axis was crossed — and that's recorded as <code>side</code>.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/execution/raycaster.c — run_dda</span>
+            <pre><code>
+<span class="code-line"><span class="code-keyword">if</span> (ray-&gt;side_dist_x &lt; ray-&gt;side_dist_y)</span>
+<span class="code-line">{</span>
+<span class="code-line">    ray-&gt;side_dist_x += ray-&gt;delta_x;</span>
+<span class="code-line">    ray-&gt;map_x += ray-&gt;step_x;</span>
+<span class="code-line">    ray-&gt;side = <span class="code-number">0</span>;</span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-keyword">else</span></span>
+<span class="code-line">{</span>
+<span class="code-line">    ray-&gt;side_dist_y += ray-&gt;delta_y;</span>
+<span class="code-line">    ray-&gt;map_y += ray-&gt;step_y;</span>
+<span class="code-line">    ray-&gt;side = <span class="code-number">1</span>;</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">The next vertical-line crossing is closer than the next horizontal one…</p>
+              <p class="tl">…so take that crossing: schedule the one after it (add the constant spacing delta_x)…</p>
+              <p class="tl">…and enter the neighboring cell on the x axis.</p>
+              <p class="tl">side = 0 remembers "I entered through a vertical line" → I'm looking at an East/West-facing wall.</p>
+              <p class="tl">Otherwise the horizontal crossing comes first — same logic on y.</p>
+              <p class="tl">side = 1 → entered through a horizontal line → North/South-facing wall. After moving, the loop checks bounds and whether grid[map_y][map_x] == '1'.</p>
+            </div>
+          </div>
+        </div>
+
+        <p>Loop exit conditions, in order: the new cell is out of bounds (jagged rows make the per-row <code>ft_strlen</code> check necessary), or the cell is a wall. <code>side</code> keeps the value from the <strong>last</strong> step — the axis through which the wall was entered. That single int later picks the texture and the fisheye formula.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Spot the bug</h2>
+        <p>This is a <em>deliberately broken</em> version of <code>init_step_side</code>'s positive branch — the kind of bug that makes walls wobble as you strafe. Click the broken line.</p>
+
+        <div class="bug-challenge">
+          <div class="bug-code">
+            <div class="bug-line" onclick="checkBugLine(this, false)">
+              <span class="line-num">1</span>
+              <code>if (ray-&gt;dir_x &lt; 0)</code>
+            </div>
+            <div class="bug-line" onclick="checkBugLine(this, false)">
+              <span class="line-num">2</span>
+              <code>{</code>
+            </div>
+            <div class="bug-line" onclick="checkBugLine(this, false)">
+              <span class="line-num">3</span>
+              <code>    ray-&gt;step_x = -1;</code>
+            </div>
+            <div class="bug-line" onclick="checkBugLine(this, false)">
+              <span class="line-num">4</span>
+              <code>    ray-&gt;side_dist_x = (p-&gt;pos_x - ray-&gt;map_x) * ray-&gt;delta_x;</code>
+            </div>
+            <div class="bug-line" onclick="checkBugLine(this, false)">
+              <span class="line-num">5</span>
+              <code>}</code>
+            </div>
+            <div class="bug-line" onclick="checkBugLine(this, false)">
+              <span class="line-num">6</span>
+              <code>else</code>
+            </div>
+            <div class="bug-line" onclick="checkBugLine(this, false)">
+              <span class="line-num">7</span>
+              <code>{</code>
+            </div>
+            <div class="bug-line" onclick="checkBugLine(this, false)">
+              <span class="line-num">8</span>
+              <code>    ray-&gt;step_x = 1;</code>
+            </div>
+            <div class="bug-line bug-target" onclick="checkBugLine(this, true)">
+              <span class="line-num">9</span>
+              <code>    ray-&gt;side_dist_x = (ray-&gt;map_x - p-&gt;pos_x) * ray-&gt;delta_x;</code>
+            </div>
+            <div class="bug-line" onclick="checkBugLine(this, false)">
+              <span class="line-num">10</span>
+              <code>}</code>
+            </div>
+          </div>
+          <div class="bug-feedback" id="bug-feedback-m4"></div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🔍</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why it matters</strong>
+            <p>The real code uses <code>(map_x + 1.0 - pos_x)</code>: the distance to the cell's <em>right</em> edge. The buggy version computes <code>map_x − pos_x</code>, which is ≤ 0 — a negative head start. The first comparison then always favors x, walls shift by up to a cell, and the error changes as the player moves inside the cell: walls "swim". If an evaluator asks "what's the +1.0 for?", this is the answer.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Checkpoint: DDA under fire</h2>
+
+        <div class="quiz-container" id="quiz-module4">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Exactly. side records which comparison won LAST — i.e. which grid line the ray crossed to enter the wall cell. Crossed a vertical line (side 0) → you see its E or W face; horizontal (side 1) → N or S face. step_x/step_y signs then choose between the two."
+               data-explanation-wrong="side is set inside the loop every iteration and keeps its final value: the axis of the LAST crossing before the wall was found. That's the face you actually hit...">
+            <h3 class="quiz-question">"What exactly does <code>side</code> mean and what is it used for?"</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Which half of the screen the column is on (left/right of center)</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The axis of the last grid line crossed before hitting the wall — 0 = vertical (E/W face), 1 = horizontal (N/S face); it selects the perp_dist formula and, with the step signs, the texture</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Whether the ray direction is mostly horizontal or mostly vertical</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="Right — delta_y = |1/dir_y| = 1e30 effectively (dir_y = 0 handled explicitly). side_dist_y is astronomically large, so the comparison always picks x: the ray walks pure horizontal cells, which is geometrically correct. No NaN, no crash."
+               data-explanation-wrong="Check init_ray: if (ray->dir_y == 0) delta_y = 1e30. A huge-but-finite delta means side_dist_y can never win the race — the ray only ever steps in x. That's exactly what a horizontal ray should do.">
+            <h3 class="quiz-question">A ray points exactly East: dir = (1, 0). Does the division by <code>dir_y</code> break the DDA?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>No — the code special-cases it to 1e30, so the y-runner never wins and the ray correctly steps only along x</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Yes — it's undefined behavior, but it happens too rarely to notice</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>No — IEEE 754 gives +inf and inf works fine in comparisons, the code relies on that</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="Correct. The walls around the map normally stop every ray, but a validated-but-jagged map still has rows of different lengths — and during development, before validate_map existed, a ray could escape. The bounds check (including per-row strlen) makes run_dda safe independently of parsing, instead of trusting another module for memory safety."
+               data-explanation-wrong="Think defensively: validate_map guarantees walkable cells are enclosed, but run_dda indexes grid[map_y][map_x] directly on jagged rows. The check costs almost nothing and makes the DDA memory-safe on its own...">
+            <h3 class="quiz-question">"Your map is validated as enclosed. Why does <code>run_dda</code> still bounds-check every cell?"</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It doesn't need to — it's dead code kept for the Norm line count</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Because rays can tunnel through wall corners at exactly 45°</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Defense in depth: rows are jagged and the renderer shouldn't rely on the parser for its memory safety — the per-row strlen check makes an out-of-map ray break cleanly instead of reading out of bounds</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module4')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module4')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

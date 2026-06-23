@@ -1,0 +1,226 @@
+<section class="module" id="module-1" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">01</span>
+      <h1 class="module-title">The Big Picture</h1>
+      <p class="module-subtitle">What ./cub3D actually does between the moment you launch it and the moment a 3D corridor appears — the program lifecycle and the frame pipeline.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">A 3D world from a 2D text file</h2>
+        <p>Cub3D is a <span class="term" data-definition="A rendering technique from the early 90s (Wolfenstein 3D, 1992): instead of simulating real light, you shoot ONE ray per screen column into a 2D grid and draw a vertical wall slice whose height depends on distance. It fakes 3D from purely 2D data.">raycasting</span> engine. The world is just a grid of characters — <code>1</code> is a wall, <code>0</code> is floor — and yet the player walks through it in first person. The whole trick: <strong>1280 rays per frame, one per screen column</strong>, each answering a single question: <em>"how far is the nearest wall in this direction?"</em></p>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🎯</div>
+          <div class="callout-content">
+            <strong class="callout-title">Evaluator question #1 (it always comes first)</strong>
+            <p>"Walk me through your program from <code>main()</code> to the first frame." This module is exactly that answer. If you can narrate the two diagrams below from memory, you've passed the opening question.</p>
+          </div>
+        </div>
+
+        <div class="icon-rows stagger-children">
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-1)">📜</div>
+            <div>
+              <strong>Parser — <code>src/parsing/</code></strong>
+              <p>Reads the <code>.cub</code> file once at startup. Either produces a fully validated map + config, or prints <code>Error\n</code> and exits. Nothing invalid survives past this point.</p>
+            </div>
+          </div>
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-2)">🧭</div>
+            <div>
+              <strong>Player state — <code>t_player</code></strong>
+              <p>Five doubles, no angles: position (<code>pos_x, pos_y</code>), direction vector (<code>dir</code>), camera plane vector (<code>plane</code>). The entire camera model.</p>
+            </div>
+          </div>
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-3)">📡</div>
+            <div>
+              <strong>Raycaster — <code>src/execution/</code></strong>
+              <p>For each screen column: build a ray, run <span class="term" data-definition="Digital Differential Analyzer — an algorithm that walks a line through a grid by always jumping to the NEXT grid boundary, never skipping a cell. Exact and fast: no fixed small steps, no missed walls.">DDA</span> until it hits a <code>1</code>, report distance and which wall face was hit.</p>
+            </div>
+          </div>
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-4)">🖼️</div>
+            <div>
+              <strong>Renderer — <code>src/render/</code></strong>
+              <p>Turns each ray result into one vertical stripe: ceiling color on top, textured wall slice in the middle, floor color below. Writes pixels into an off-screen image.</p>
+            </div>
+          </div>
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-5)">⌨️</div>
+            <div>
+              <strong>Events — <code>src/events/</code></strong>
+              <p>MLX <span class="term" data-definition="A hook is a callback function you register with the windowing system: 'when event X happens, call my function'. MLX wraps X11 events (KeyPress = 2, KeyRelease = 3, DestroyNotify = 17) this way.">hooks</span> that record which keys are held, and per-frame functions that turn held keys into movement and rotation.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Boot sequence: six calls, in order</h2>
+        <p><code>main()</code> is deliberately boring — it's a checklist. Order matters and evaluators love asking why.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/main.c</span>
+            <pre><code>
+<span class="code-line"><span class="code-function">cub_init</span>(&amp;cub);</span>
+<span class="code-line"><span class="code-function">parse_file</span>(&amp;cub, av[<span class="code-number">1</span>]);</span>
+<span class="code-line"><span class="code-function">init_mlx</span>(&amp;cub);</span>
+<span class="code-line"><span class="code-function">load_textures</span>(&amp;cub);</span>
+<span class="code-line"><span class="code-function">register_hooks</span>(&amp;cub);</span>
+<span class="code-line"><span class="code-function">mlx_loop</span>(cub.mlx);</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Zero the whole struct with <code>ft_bzero</code> — so cleanup can safely check "was this ever allocated?" on any field, even after an early error.</p>
+              <p class="tl">Parse and validate everything <em>before</em> opening a window. Bad file → error and exit without ever touching graphics.</p>
+              <p class="tl">Connect to the display server, open the 1280×720 window, create the off-screen image buffer.</p>
+              <p class="tl">Load the 4 wall XPM textures — needs MLX alive, hence after <code>init_mlx</code>.</p>
+              <p class="tl">Register key press/release, window close, and the per-frame loop callback.</p>
+              <p class="tl">Hand control to MLX forever. From here on, everything happens inside callbacks.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why parse before MLX?</strong>
+            <p>Two reasons: a bad map must fail fast with only <code>Error\n</code> + message (no window flash), and error cleanup is much simpler when there are no graphics resources to undo yet. <code>cub_init</code>'s zeroing is what makes <code>exit_error → cub_destroy</code> safe at <em>any</em> point: every destroy is guarded by <code>if (ptr)</code>.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The frame pipeline — what happens 60 times a second</h2>
+        <p>Once <code>mlx_loop</code> runs, MLX calls <code>loop_hook()</code> whenever it's idle. One call = one full frame. Step through it:</p>
+
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-1","label":"You hold W. The KeyPress hook only sets keys[KEY_W] = 1 — no movement happens here."},
+          {"highlight":"flow-actor-2","label":"MLX is idle, so it calls loop_hook(). The frame begins.","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-2","label":"apply_movement() and apply_rotation() read the keys[] array and update pos, dir and plane — with collision checks."},
+          {"highlight":"flow-actor-3","label":"cast_all_rays(): for x = 0 to 1279, build a ray, run DDA to the nearest wall, compute the stripe.","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-4","label":"Each column writes ceiling + textured wall + floor pixels into the off-screen image buffer.","packet":true,"from":"actor-3","to":"actor-4"},
+          {"highlight":"flow-actor-5","label":"mlx_put_image_to_window() blits the finished 1280x720 image to the screen in one shot. Frame done.","packet":true,"from":"actor-4","to":"actor-5"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-1">
+              <div class="flow-actor-icon">⌨️</div>
+              <span>keys[]</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-2">
+              <div class="flow-actor-icon">🔁</div>
+              <span>loop_hook</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-3">
+              <div class="flow-actor-icon">📡</div>
+              <span>Raycaster</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-4">
+              <div class="flow-actor-icon">🖼️</div>
+              <span>Image buffer</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-5">
+              <div class="flow-actor-icon">🪟</div>
+              <span>Window</span>
+            </div>
+          </div>
+
+          <div class="flow-packet" id="flow-packet"></div>
+          <div class="flow-step-label" id="flow-label">Click "Next Step" to run one frame</div>
+
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">Next Step</button>
+            <button class="btn flow-reset-btn">Restart</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+
+        <p>This is <span class="term" data-definition="Drawing a complete frame into a hidden memory buffer first, then pushing it to the screen in one operation. The user never sees a half-drawn frame, and you avoid thousands of slow individual screen writes.">double buffering</span>: <code>put_px()</code> writes raw bytes into <code>img.data</code> in memory, and only <code>mlx_put_image_to_window</code> touches the actual screen — once per frame. Calling <code>mlx_pixel_put</code> 921,600 times instead would flicker and crawl.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Checkpoint: opening questions</h2>
+        <p>Answer like you're sitting at the evaluation table.</p>
+
+        <div class="quiz-container" id="quiz-module1">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Exactly. Movement is decoupled from key events: hooks only record state, and loop_hook applies it once per frame. That's why holding W is smooth and W+D works simultaneously."
+               data-explanation-wrong="Not quite. Look at key_press() in src/events/hooks.c — it only does cub->keys[key] = 1. The actual position change happens in apply_movement(), called from loop_hook() every frame.">
+            <h3 class="quiz-question">The evaluator holds the W key. Where does the player's position actually change?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Inside <code>key_press()</code>, each time X11 sends a KeyPress event</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Inside <code>apply_movement()</code>, called from <code>loop_hook()</code> once per frame, reading the <code>keys[]</code> state array</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Inside <code>mlx_loop()</code>, which moves the player automatically</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="Right — one ray per column of the window. Each ray produces exactly one vertical stripe. Resize the window width and the ray count follows."
+               data-explanation-wrong="Think about what a ray produces: one vertical stripe of pixels. The screen is WIN_W = 1280 columns wide, and cast_all_rays() loops x from 0 to WIN_W - 1.">
+            <h3 class="quiz-question">"How many rays do you cast per frame, and why that number?"</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>One per pixel — 1280 × 720</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>360, one per degree of view</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>1280 — one per screen column, because each ray paints one vertical stripe</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="Correct. The image is a plain byte array in memory; put_px writes into it with pointer arithmetic. Only mlx_put_image_to_window transfers it to the screen — one X11 round-trip per frame instead of ~900k."
+               data-explanation-wrong="Not this one. mlx_pixel_put draws straight to the window — slow (one server call per pixel) and it flickers because you watch the frame being painted. This project never uses it.">
+            <h3 class="quiz-question">"Why do you draw into an image and push it, instead of using <code>mlx_pixel_put</code> directly?"</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Writing to the memory buffer is just pointer arithmetic; one <code>mlx_put_image_to_window</code> per frame avoids flicker and ~900k slow server calls</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Because <code>mlx_pixel_put</code> can't draw colors, only black and white</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It's a Norm requirement — direct drawing is forbidden by the subject</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module1')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module1')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

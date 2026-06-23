@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cub3D: Inside the Raycaster</title>
+
+  <!-- Google Fonts: Bricolage Grotesque · DM Sans · JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400;1,9..40,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    :root {
+      --color-accent:       #D94F30;
+      --color-accent-hover: #C4432A;
+      --color-accent-light: #FDEEE9;
+      --color-accent-muted: #E8836C;
+    }
+  </style>
+
+  <script src="main.js" defer></script>
+</head>
+<body>
+
+  <nav class="nav" id="nav">
+    <div class="progress-bar" id="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+    <div class="nav-inner">
+      <span class="nav-title">Cub3D: Inside the Raycaster</span>
+      <div class="nav-dots" id="nav-dots" role="tablist">
+        <button class="nav-dot" data-target="module-1" data-tooltip="The Big Picture" role="tab" aria-label="Module 1: The Big Picture"></button>
+        <button class="nav-dot" data-target="module-2" data-tooltip="Parsing &amp; Validation" role="tab" aria-label="Module 2: Parsing and Validation"></button>
+        <button class="nav-dot" data-target="module-3" data-tooltip="The Camera Without Angles" role="tab" aria-label="Module 3: The Camera Without Angles"></button>
+        <button class="nav-dot" data-target="module-4" data-tooltip="DDA: Walking the Grid" role="tab" aria-label="Module 4: DDA Walking the Grid"></button>
+        <button class="nav-dot" data-target="module-5" data-tooltip="Projection &amp; Textures" role="tab" aria-label="Module 5: Projection and Textures"></button>
+        <button class="nav-dot" data-target="module-6" data-tooltip="Movement &amp; the Evaluation" role="tab" aria-label="Module 6: Movement and the Evaluation"></button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+    <!-- modules/*.html content is assembled here by build.sh -->
+<section class="module" id="module-1" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">01</span>
+      <h1 class="module-title">The Big Picture</h1>
+      <p class="module-subtitle">What ./cub3D actually does between the moment you launch it and the moment a 3D corridor appears — the program lifecycle and the frame pipeline.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">A 3D world from a 2D text file</h2>
+        <p>Cub3D is a <span class="term" data-definition="A rendering technique from the early 90s (Wolfenstein 3D, 1992): instead of simulating real light, you shoot ONE ray per screen column into a 2D grid and draw a vertical wall slice whose height depends on distance. It fakes 3D from purely 2D data.">raycasting</span> engine. The world is just a grid of characters — <code>1</code> is a wall, <code>0</code> is floor — and yet the player walks through it in first person. The whole trick: <strong>1280 rays per frame, one per screen column</strong>, each answering a single question: <em>"how far is the nearest wall in this direction?"</em></p>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🎯</div>
+          <div class="callout-content">
+            <strong class="callout-title">Evaluator question #1 (it always comes first)</strong>
+            <p>"Walk me through your program from <code>main()</code> to the first frame." This module is exactly that answer. If you can narrate the two diagrams below from memory, you've passed the opening question.</p>
+          </div>
+        </div>
+
+        <div class="icon-rows stagger-children">
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-1)">📜</div>
+            <div>
+              <strong>Parser — <code>src/parsing/</code></strong>
+              <p>Reads the <code>.cub</code> file once at startup. Either produces a fully validated map + config, or prints <code>Error\n</code> and exits. Nothing invalid survives past this point.</p>
+            </div>
+          </div>
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-2)">🧭</div>
+            <div>
+              <strong>Player state — <code>t_player</code></strong>
+              <p>Five doubles, no angles: position (<code>pos_x, pos_y</code>), direction vector (<code>dir</code>), camera plane vector (<code>plane</code>). The entire camera model.</p>
+            </div>
+          </div>
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-3)">📡</div>
+            <div>
+              <strong>Raycaster — <code>src/execution/</code></strong>
+              <p>For each screen column: build a ray, run <span class="term" data-definition="Digital Differential Analyzer — an algorithm that walks a line through a grid by always jumping to the NEXT grid boundary, never skipping a cell. Exact and fast: no fixed small steps, no missed walls.">DDA</span> until it hits a <code>1</code>, report distance and which wall face was hit.</p>
+            </div>
+          </div>
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-4)">🖼️</div>
+            <div>
+              <strong>Renderer — <code>src/render/</code></strong>
+              <p>Turns each ray result into one vertical stripe: ceiling color on top, textured wall slice in the middle, floor color below. Writes pixels into an off-screen image.</p>
+            </div>
+          </div>
+          <div class="icon-row animate-in">
+            <div class="icon-circle" style="background: var(--color-actor-5)">⌨️</div>
+            <div>
+              <strong>Events — <code>src/events/</code></strong>
+              <p>MLX <span class="term" data-definition="A hook is a callback function you register with the windowing system: 'when event X happens, call my function'. MLX wraps X11 events (KeyPress = 2, KeyRelease = 3, DestroyNotify = 17) this way.">hooks</span> that record which keys are held, and per-frame functions that turn held keys into movement and rotation.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Boot sequence: six calls, in order</h2>
+        <p><code>main()</code> is deliberately boring — it's a checklist. Order matters and evaluators love asking why.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/main.c</span>
+            <pre><code>
+<span class="code-line"><span class="code-function">cub_init</span>(&amp;cub);</span>
+<span class="code-line"><span class="code-function">parse_file</span>(&amp;cub, av[<span class="code-number">1</span>]);</span>
+<span class="code-line"><span class="code-function">init_mlx</span>(&amp;cub);</span>
+<span class="code-line"><span class="code-function">load_textures</span>(&amp;cub);</span>
+<span class="code-line"><span class="code-function">register_hooks</span>(&amp;cub);</span>
+<span class="code-line"><span class="code-function">mlx_loop</span>(cub.mlx);</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Zero the whole struct with <code>ft_bzero</code> — so cleanup can safely check "was this ever allocated?" on any field, even after an early error.</p>
+              <p class="tl">Parse and validate everything <em>before</em> opening a window. Bad file → error and exit without ever touching graphics.</p>
+              <p class="tl">Connect to the display server, open the 1280×720 window, create the off-screen image buffer.</p>
+              <p class="tl">Load the 4 wall XPM textures — needs MLX alive, hence after <code>init_mlx</code>.</p>
+              <p class="tl">Register key press/release, window close, and the per-frame loop callback.</p>
+              <p class="tl">Hand control to MLX forever. From here on, everything happens inside callbacks.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why parse before MLX?</strong>
+            <p>Two reasons: a bad map must fail fast with only <code>Error\n</code> + message (no window flash), and error cleanup is much simpler when there are no graphics resources to undo yet. <code>cub_init</code>'s zeroing is what makes <code>exit_error → cub_destroy</code> safe at <em>any</em> point: every destroy is guarded by <code>if (ptr)</code>.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The frame pipeline — what happens 60 times a second</h2>
+        <p>Once <code>mlx_loop</code> runs, MLX calls <code>loop_hook()</code> whenever it's idle. One call = one full frame. Step through it:</p>
+
+        <div class="flow-animation" data-steps='[
+          {"highlight":"flow-actor-1","label":"You hold W. The KeyPress hook only sets keys[KEY_W] = 1 — no movement happens here."},
+          {"highlight":"flow-actor-2","label":"MLX is idle, so it calls loop_hook(). The frame begins.","packet":true,"from":"actor-1","to":"actor-2"},
+          {"highlight":"flow-actor-2","label":"apply_movement() and apply_rotation() read the keys[] array and update pos, dir and plane — with collision checks."},
+          {"highlight":"flow-actor-3","label":"cast_all_rays(): for x = 0 to 1279, build a ray, run DDA to the nearest wall, compute the stripe.","packet":true,"from":"actor-2","to":"actor-3"},
+          {"highlight":"flow-actor-4","label":"Each column writes ceiling + textured wall + floor pixels into the off-screen image buffer.","packet":true,"from":"actor-3","to":"actor-4"},
+          {"highlight":"flow-actor-5","label":"mlx_put_image_to_window() blits the finished 1280x720 image to the screen in one shot. Frame done.","packet":true,"from":"actor-4","to":"actor-5"}
+        ]'>
+          <div class="flow-actors">
+            <div class="flow-actor" id="flow-actor-1">
+              <div class="flow-actor-icon">⌨️</div>
+              <span>keys[]</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-2">
+              <div class="flow-actor-icon">🔁</div>
+              <span>loop_hook</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-3">
+              <div class="flow-actor-icon">📡</div>
+              <span>Raycaster</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-4">
+              <div class="flow-actor-icon">🖼️</div>
+              <span>Image buffer</span>
+            </div>
+            <div class="flow-actor" id="flow-actor-5">
+              <div class="flow-actor-icon">🪟</div>
+              <span>Window</span>
+            </div>
+          </div>
+
+          <div class="flow-packet" id="flow-packet"></div>
+          <div class="flow-step-label" id="flow-label">Click "Next Step" to run one frame</div>
+
+          <div class="flow-controls">
+            <button class="btn flow-next-btn">Next Step</button>
+            <button class="btn flow-reset-btn">Restart</button>
+            <span class="flow-progress"></span>
+          </div>
+        </div>
+
+        <p>This is <span class="term" data-definition="Drawing a complete frame into a hidden memory buffer first, then pushing it to the screen in one operation. The user never sees a half-drawn frame, and you avoid thousands of slow individual screen writes.">double buffering</span>: <code>put_px()</code> writes raw bytes into <code>img.data</code> in memory, and only <code>mlx_put_image_to_window</code> touches the actual screen — once per frame. Calling <code>mlx_pixel_put</code> 921,600 times instead would flicker and crawl.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Checkpoint: opening questions</h2>
+        <p>Answer like you're sitting at the evaluation table.</p>
+
+        <div class="quiz-container" id="quiz-module1">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Exactly. Movement is decoupled from key events: hooks only record state, and loop_hook applies it once per frame. That's why holding W is smooth and W+D works simultaneously."
+               data-explanation-wrong="Not quite. Look at key_press() in src/events/hooks.c — it only does cub->keys[key] = 1. The actual position change happens in apply_movement(), called from loop_hook() every frame.">
+            <h3 class="quiz-question">The evaluator holds the W key. Where does the player's position actually change?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Inside <code>key_press()</code>, each time X11 sends a KeyPress event</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Inside <code>apply_movement()</code>, called from <code>loop_hook()</code> once per frame, reading the <code>keys[]</code> state array</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Inside <code>mlx_loop()</code>, which moves the player automatically</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="Right — one ray per column of the window. Each ray produces exactly one vertical stripe. Resize the window width and the ray count follows."
+               data-explanation-wrong="Think about what a ray produces: one vertical stripe of pixels. The screen is WIN_W = 1280 columns wide, and cast_all_rays() loops x from 0 to WIN_W - 1.">
+            <h3 class="quiz-question">"How many rays do you cast per frame, and why that number?"</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>One per pixel — 1280 × 720</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>360, one per degree of view</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>1280 — one per screen column, because each ray paints one vertical stripe</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="Correct. The image is a plain byte array in memory; put_px writes into it with pointer arithmetic. Only mlx_put_image_to_window transfers it to the screen — one X11 round-trip per frame instead of ~900k."
+               data-explanation-wrong="Not this one. mlx_pixel_put draws straight to the window — slow (one server call per pixel) and it flickers because you watch the frame being painted. This project never uses it.">
+            <h3 class="quiz-question">"Why do you draw into an image and push it, instead of using <code>mlx_pixel_put</code> directly?"</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Writing to the memory buffer is just pointer arithmetic; one <code>mlx_put_image_to_window</code> per frame avoids flicker and ~900k slow server calls</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Because <code>mlx_pixel_put</code> can't draw colors, only black and white</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It's a Norm requirement — direct drawing is forbidden by the subject</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module1')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module1')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+<section class="module" id="module-2" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">02</span>
+      <h1 class="module-title">Parsing &amp; Validation</h1>
+      <p class="module-subtitle">Half the evaluation lives here. The evaluator will feed your program broken maps and expect a clean <code>Error\n</code> every single time.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Anatomy of a .cub file</h2>
+        <p>Six configuration elements (any order, any number of blank lines between them), then the map — which must come <strong>last</strong>.</p>
+
+        <div class="badge-list">
+          <div class="badge-item">
+            <code class="badge-code">NO ./path.xpm</code>
+            <span class="badge-desc">North wall texture — stored in <code>tex_path[TEX_NO]</code> (index 0)</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">SO / WE / EA</code>
+            <span class="badge-desc">South, West, East textures — indices 1, 2, 3</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">F 220,100,0</code>
+            <span class="badge-desc">Floor color: three comma-separated ints, each 0–255</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">C 225,30,0</code>
+            <span class="badge-desc">Ceiling color, same rules</span>
+          </div>
+          <div class="badge-item">
+            <code class="badge-code">1 0 N space</code>
+            <span class="badge-desc">Map rows: walls, floor, exactly one spawn (N/S/E/W), spaces = void outside the playable area</span>
+          </div>
+        </div>
+
+        <p>Each parsed element flips one bit in <code>parsed_flags</code> — a <span class="term" data-definition="An int used as an array of booleans: bit 0 = NO texture seen, bit 1 = SO, ... bit 5 = ceiling color. Setting: flags |= (1 &lt;&lt; bit). Testing: flags &amp; (1 &lt;&lt; bit). All six present = 0b111111 = 63 = FLAG_ALL.">bitmask</span>. Duplicate identifier? The bit is already set → error. Map starts but <code>parsed_flags != 63</code>? "Map found before all elements" → error.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">One line comes in — who handles it?</h2>
+        <p><code>parse_file()</code> reads line by line with <code>get_next_line</code> and dispatches. Watch the parsing crew handle a file:</p>
+
+        <div class="chat-window" id="chat-module2">
+          <div class="chat-messages">
+            <div class="chat-message" data-msg="0" data-sender="parsefile" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">PF</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">parse_file</span>
+                <p>Got a line: <code>"NO ./textures/wall_n.xpm"</code>. identify_element, what is this?</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="1" data-sender="identify" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">ID</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">identify_element</span>
+                <p>Starts with "NO" followed by whitespace → that's TEX_NO (0). Send it to parse_texture.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="2" data-sender="texture" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-3)">TX</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-3)">parse_texture</span>
+                <p>Bit 0 not set yet, good — no duplicate. Trimming the path, storing it, flipping bit 0. parsed_flags is now 000001.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="3" data-sender="parsefile" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">PF</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">parse_file</span>
+                <p>Next: <code>"F 220,100,0"</code>. identify says C_FLOOR → parse_color, you're up.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="4" data-sender="color" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-4)">CL</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-4)">parse_color</span>
+                <p>Split on commas → exactly 3 parts, each all-digits, 1–3 chars, value ≤ 255. Packed into one int: (220&lt;&lt;16) | (100&lt;&lt;8) | 0. Bit 4 set.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="5" data-sender="parsefile" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-1)">PF</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-1)">parse_file</span>
+                <p>Now a line starting with '1'... that's a map line. Wait — parsed_flags must be 63 first. It is. store_map_lines, take over the file descriptor.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="6" data-sender="storemap" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-5)">MP</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-5)">store_map_lines</span>
+                <p>Reading rows until EOF or a blank line. Each row: chars checked (012 NSEW space tab CR), newline trimmed, tabs normalized, appended to the grid. Grid grows row by row.</p>
+              </div>
+            </div>
+            <div class="chat-message" data-msg="7" data-sender="validate" style="display:none">
+              <div class="chat-avatar" style="background: var(--color-actor-2)">VM</div>
+              <div class="chat-bubble">
+                <span class="chat-sender" style="color: var(--color-actor-2)">validate_map</span>
+                <p>My turn, after EOF. Every walkable cell gets its 8 neighbors checked, spawn count must be exactly 1. One open edge and I call exit_error.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-typing" id="chat-module2-typing" style="display:none">
+            <div class="chat-avatar" id="chat-module2-typing-avatar">?</div>
+            <div class="chat-typing-dots">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </div>
+          </div>
+
+          <div class="chat-controls">
+            <button class="btn chat-next-btn">Next Message</button>
+            <button class="btn chat-all-btn">Play All</button>
+            <button class="btn chat-reset-btn">Replay</button>
+            <span class="chat-progress"></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The map grid: jagged on purpose</h2>
+        <p>Rows are stored <em>as-is</em> (newline trimmed, tabs → spaces). Rows can have different lengths — the code never pads them. That's why <strong>every</strong> place that indexes the grid first checks <code>x &lt; ft_strlen(grid[y])</code>: the DDA loop, collision, and validation all do this.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/parsing/validate_map.c</span>
+            <pre><code>
+<span class="code-line"><span class="code-keyword">if</span> (ny &lt; <span class="code-number">0</span> || ny &gt;= cub-&gt;map.height)</span>
+<span class="code-line">    <span class="code-function">exit_error</span>(cub, <span class="code-string">"Map is not enclosed by walls"</span>);</span>
+<span class="code-line">row_len = <span class="code-function">ft_strlen</span>(cub-&gt;map.grid[ny]);</span>
+<span class="code-line"><span class="code-keyword">if</span> (nx &lt; <span class="code-number">0</span> || nx &gt;= row_len)</span>
+<span class="code-line">    <span class="code-function">exit_error</span>(cub, <span class="code-string">"Map is not enclosed by walls"</span>);</span>
+<span class="code-line"><span class="code-keyword">if</span> (cub-&gt;map.grid[ny][nx] == <span class="code-string">' '</span>)</span>
+<span class="code-line">    <span class="code-function">exit_error</span>(cub, <span class="code-string">"Map is not enclosed by walls"</span>);</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">A neighbor above the first row or below the last row means a walkable cell touches the void → not enclosed.</p>
+              <p class="tl">Rows are jagged, so measure <em>this</em> row's actual length.</p>
+              <p class="tl">A neighbor past the end of a short row is also the void → same error.</p>
+              <p class="tl">And a literal space inside the map counts as void too. Walkable cell touching space = leak in the walls.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why 8 neighbors instead of flood fill?</strong>
+            <p>Both prove enclosure. The invariant here: <em>every walkable cell (0 or spawn) must be fully surrounded by non-void cells — including diagonals</em>. If a walkable cell can "see" void in any of 8 directions, the map leaks. It's a local check, O(8) per cell, no recursion, no visited array — simpler to defend at evaluation than flood fill, and it catches diagonal gaps that 4-neighbor checks miss.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The error contract</h2>
+        <p>Every failure path goes through one function. No exceptions, no leaks.</p>
+
+        <div class="step-cards">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>Print <code>Error\n</code> + message to stderr</strong>
+              <p>Exactly the subject format: <code>ft_putstr_fd("Error\n", 2)</code> then the specific reason.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong><code>cub_destroy()</code> — free everything that exists</strong>
+              <p>Textures, image, window, display, grid rows, texture paths. Every free is guarded, and <code>cub_init</code>'s zeroing guarantees the guards are meaningful even on the earliest error.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong><code>exit(1)</code></strong>
+              <p>Non-zero status. The evaluator will run your program under valgrind on a broken map — this path must be leak-free too.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-content">
+            <strong class="callout-title">Known leak window — be ready for this question</strong>
+            <p>When <code>exit_error</code> fires mid-parsing, the <em>current</em> <code>get_next_line</code> line and GNL's internal stash can still be allocated. <code>post_map_check()</code> shows the careful pattern: it frees the line and closes the fd <em>before</em> calling <code>exit_error</code>. If valgrind shows a few "still reachable" bytes from GNL on error paths, know exactly where they come from and why.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Checkpoint: the evaluator opens a text editor</h2>
+        <p>They <em>will</em> create hostile maps live. Predict the outcome.</p>
+
+        <div class="quiz-container" id="quiz-module2">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Right. The player spawn 'N' is walkable, so check_cell runs on it — its north-east diagonal neighbor is a space → 'Map is not enclosed by walls'. The 8-neighbor check catches diagonal leaks."
+               data-explanation-wrong="Walk it through validate_map: 'N' is walkable (is_walkable returns 1 for spawns too). check_cell tests all 8 neighbors including diagonals, and one diagonal is a space character...">
+            <h3 class="quiz-question">The evaluator edits the map so the spawn cell has a wall above and to the right, but a <em>space</em> in the diagonal between them. What happens?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Accepted — diagonals don't matter, you can't move diagonally through a corner</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Rejected — <code>check_cell</code> tests all 8 neighbors of every walkable cell, including diagonals</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Crash — the diagonal index reads out of bounds</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="Exactly. store_map_lines stops at the first blank line; then parse_file's post_map_check sees a non-blank line after the map already exists → 'Content after map'. A map split by a blank line is two maps — invalid."
+               data-explanation-wrong="Follow the flow: store_map_lines breaks on a blank line. Back in parse_file, map.grid is now set, so every following line goes to post_map_check. The second half of the map is non-blank content after the map...">
+            <h3 class="quiz-question">A blank line in the <em>middle</em> of the map, with more map rows after it. Outcome?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The blank line is skipped and the map continues normally</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Only the first half is kept; the rest is silently ignored</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Error: the map ends at the blank line, and the remaining rows trigger "Content after map"</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="Correct — parse_component trims whitespace then requires only digits, 1-3 of them, value ≤ 255. '+220', '22 0' or '256' all fail → 'Invalid color format'. And ft_split also rejects a missing or extra component."
+               data-explanation-wrong="Look at is_valid_digits + parse_component in parse_colors.c: after trimming, every char must be a digit (so no signs), length 1-3, and the value must land in [0, 255].">
+            <h3 class="quiz-question">"F 220,100,256" — what does your parser do?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Error: each component must be all-digits, 1–3 chars, and ≤ 255 — 256 fails the range check</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>256 wraps around to 0 because of the byte shift</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Accepted — RGB values are clamped to 255</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Right. Two spawn characters means init_player runs twice (last one wins for position) but the spawn counter ends at 2, and validate_map exits with 'Map must have exactly one player spawn'."
+               data-explanation-wrong="Check the end of validate_map: a spawn counter is incremented for every N/S/E/W found, and the rule is spawn != 1 → error. Zero spawns fails the same check.">
+            <h3 class="quiz-question">The map contains both an <code>N</code> and an <code>E</code>. What happens?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The first spawn wins, the second is treated as floor</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Error — the spawn counter ends at 2, and <code>spawn != 1</code> is rejected</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Error only if the two spawns point in different directions</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module2')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module2')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+<section class="module" id="module-3" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">03</span>
+      <h1 class="module-title">The Camera Without Angles</h1>
+      <p class="module-subtitle">No angle variable anywhere in the code — the camera is two vectors. This is the single most important idea to defend at the table.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Three things define the view</h2>
+        <p>The whole camera is five doubles in <code>t_player</code>: a position, a <strong>direction vector</strong> <code>dir</code> (unit length), and a <strong>camera plane vector</strong> <code>plane</code> (length 0.66, always <span class="term" data-definition="Two vectors are perpendicular when their dot product is zero. Here plane is dir rotated 90 degrees and scaled: if dir = (dx, dy), then plane = ±0.66 · (−dy, dx).">perpendicular</span> to <code>dir</code>).</p>
+
+        <svg viewBox="0 0 640 340" style="width:100%; height:auto; display:block; margin: var(--space-6) 0; background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);" role="img" aria-label="Top-down diagram of the player position, direction vector, camera plane and the rays to the screen edges">
+          <defs>
+            <marker id="arrowAcc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#D94F30"/>
+            </marker>
+            <marker id="arrowTeal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#2A7B9B"/>
+            </marker>
+            <marker id="arrowPlum" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#7B6DAA"/>
+            </marker>
+          </defs>
+          <!-- grid -->
+          <g stroke="#EEEBE5" stroke-width="1">
+            <line x1="0" y1="60" x2="640" y2="60"/><line x1="0" y1="140" x2="640" y2="140"/>
+            <line x1="0" y1="220" x2="640" y2="220"/><line x1="0" y1="300" x2="640" y2="300"/>
+            <line x1="80" y1="0" x2="80" y2="340"/><line x1="160" y1="0" x2="160" y2="340"/>
+            <line x1="240" y1="0" x2="240" y2="340"/><line x1="320" y1="0" x2="320" y2="340"/>
+            <line x1="400" y1="0" x2="400" y2="340"/><line x1="480" y1="0" x2="480" y2="340"/>
+            <line x1="560" y1="0" x2="560" y2="340"/>
+          </g>
+          <!-- rays to plane edges -->
+          <line x1="200" y1="260" x2="440" y2="60" stroke="#E8836C" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <line x1="200" y1="260" x2="440" y2="260" stroke="#E8836C" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <!-- dir vector -->
+          <line x1="200" y1="260" x2="430" y2="160" stroke="#D94F30" stroke-width="3" marker-end="url(#arrowAcc)"/>
+          <!-- camera plane -->
+          <line x1="440" y1="160" x2="440" y2="60" stroke="#2A7B9B" stroke-width="3" marker-end="url(#arrowTeal)"/>
+          <line x1="440" y1="160" x2="440" y2="260" stroke="#2A7B9B" stroke-width="3" stroke-dasharray="6 4"/>
+          <!-- player -->
+          <circle cx="200" cy="260" r="8" fill="#D94F30"/>
+          <!-- labels -->
+          <text x="170" y="290" font-family="JetBrains Mono, monospace" font-size="14" fill="#2C2A28">pos</text>
+          <text x="300" y="195" font-family="JetBrains Mono, monospace" font-size="14" fill="#D94F30">dir (len 1)</text>
+          <text x="452" y="105" font-family="JetBrains Mono, monospace" font-size="14" fill="#2A7B9B">+plane</text>
+          <text x="452" y="235" font-family="JetBrains Mono, monospace" font-size="14" fill="#2A7B9B">−plane</text>
+          <text x="455" y="65" font-family="DM Sans, sans-serif" font-size="13" fill="#6B6560">camera_x = +1 (right edge, x = 1279)</text>
+          <text x="455" y="160" font-family="DM Sans, sans-serif" font-size="13" fill="#6B6560">camera_x = 0 (screen center)</text>
+          <text x="455" y="278" font-family="DM Sans, sans-serif" font-size="13" fill="#6B6560">camera_x = −1 (left edge, x = 0)</text>
+        </svg>
+
+        <p>The segment from <code>dir + plane·(−1)</code> to <code>dir + plane·(+1)</code> <em>is</em> your screen, laid flat inside the 2D world. Casting a ray through screen column <code>x</code> means aiming at the matching point on that segment.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Why 0.66? The FOV math</h2>
+        <p>Half the screen spans from the tip of <code>dir</code> to the tip of <code>plane</code>. Those two are perpendicular, so the half-angle of the <span class="term" data-definition="Field Of View — the angular width of what the camera sees. Wolfenstein-style engines use about 66 degrees; 90 degrees starts to look distorted at the edges with this projection.">FOV</span> satisfies a right-triangle relation:</p>
+
+        <div style="background: var(--color-bg-code); color:#CDD6F4; border-radius: var(--radius-md); padding: var(--space-6); font-family: var(--font-mono); font-size: var(--text-base); line-height: 2; box-shadow: var(--shadow-md);">
+          tan(FOV / 2) = |plane| / |dir| = 0.66 / 1<br>
+          FOV = 2 · atan(0.66) ≈ <span style="color:#A6E3A1">66.8°</span>
+        </div>
+
+        <p>Want a 90° FOV? Set <code>|plane| = 1.0</code> (tan 45° = 1). The ratio of the two vector lengths <em>is</em> the FOV — nothing else in the code needs to change.</p>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Raycasting is not ray tracing — say it before they ask</strong>
+            <p>Ray <em>tracing</em> shoots a ray per pixel in 3D and simulates light bounces. Ray <em>casting</em> here shoots one ray per <em>column</em> through a flat 2D grid and only finds the first wall. Cost: O(columns × cells crossed), real-time on 1992 hardware. The subject says "ray-casting" — using the right word at the table matters.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">From column number to ray direction</h2>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/execution/ray_utils.c — init_ray</span>
+            <pre><code>
+<span class="code-line">camera_x = <span class="code-number">2.0</span> * x / WIN_W - <span class="code-number">1.0</span>;</span>
+<span class="code-line">ray-&gt;dir_x = p-&gt;dir_x + p-&gt;plane_x * camera_x;</span>
+<span class="code-line">ray-&gt;dir_y = p-&gt;dir_y + p-&gt;plane_y * camera_x;</span>
+<span class="code-line">ray-&gt;map_x = (<span class="code-keyword">int</span>)p-&gt;pos_x;</span>
+<span class="code-line">ray-&gt;map_y = (<span class="code-keyword">int</span>)p-&gt;pos_y;</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Remap column x ∈ [0, 1280) onto [−1, +1): left edge → −1, center → 0, right edge → just under +1.</p>
+              <p class="tl">The ray direction is the look direction, nudged sideways along the camera plane by camera_x. At the center the ray <em>is</em> dir; at the edges it's dir ± plane.</p>
+              <p class="tl">Same formula for y. Note: the resulting ray is NOT normalized — and that's fine (module 4 explains why it never needs to be).</p>
+              <p class="tl">Start the grid walk in the cell containing the player — just truncate the position to ints.</p>
+            </div>
+          </div>
+        </div>
+
+        <p>One subtlety worth volunteering at the eval: equal <em>steps in camera_x</em> (not equal angles) is what makes straight walls render straight. An angle-based camera that sweeps the FOV in equal angular steps produces curved walls — that's the fisheye family of bugs before fisheye is even discussed.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Spawning: how N/S/E/W become vectors</h2>
+        <p><code>init_player()</code> centers the player in the cell (<code>x + 0.5, y + 0.5</code>) and sets the two vectors. Remember the map's coordinate system: <strong>y grows downward</strong> (row 0 is the top line of the file), so North is <code>dir = (0, −1)</code>.</p>
+
+        <div class="pattern-cards stagger-children">
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">N</div>
+            <h4 class="pattern-title">dir (0, −1)</h4>
+            <p class="pattern-desc">plane (0.66, 0) — points to the player's left-to-right axis, east.</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">S</div>
+            <h4 class="pattern-title">dir (0, 1)</h4>
+            <p class="pattern-desc">plane (−0.66, 0) — sign flips so "screen right" stays on the player's right.</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-3)">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">E</div>
+            <h4 class="pattern-title">dir (1, 0)</h4>
+            <p class="pattern-desc">plane (0, 0.66) — perpendicular, consistent handedness.</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">W</div>
+            <h4 class="pattern-title">dir (−1, 0)</h4>
+            <p class="pattern-desc">plane (0, −0.66) — flip the dir, flip the plane.</p>
+          </div>
+        </div>
+
+        <p>The rule behind all four: <code>plane = 0.66 · (−dir_y, dir_x)</code>. Get one sign wrong and the world renders mirrored — left arrow turns the view right. That's the classic symptom evaluators know to look for.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Checkpoint: camera math at the table</h2>
+
+        <div class="quiz-container" id="quiz-module3">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Exactly: camera_x = 2·0/1280 − 1 = −1, so rayDir = dir + plane·(−1) = (0,−1) − (0.66,0) = (−0.66, −1). Leftmost column looks ahead-and-to-the-left, as it should for a north-facing player."
+               data-explanation-wrong="Plug into the formula: camera_x = 2·x/WIN_W − 1 = −1 at x = 0. Then rayDir = dir + plane·camera_x with dir = (0,−1), plane = (0.66, 0)...">
+            <h3 class="quiz-question">Player spawned <code>N</code>: dir = (0,−1), plane = (0.66, 0). What's the ray direction for column x = 0?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>(0.66, −1)</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>(−0.66, −1)</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>(0, −1) — column 0 always looks straight ahead</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="Right — tan(FOV/2) = |plane|/|dir|, so FOV = 2·atan(1.0) = 90°. One constant, and only the plane length changes; rays, DDA and projection all keep working untouched."
+               data-explanation-wrong="The FOV comes from the triangle formed by dir and plane: tan(FOV/2) = |plane|/|dir|. Solve for |plane| with FOV = 90°: tan(45°) = 1...">
+            <h3 class="quiz-question">"Make your FOV 90°." What do you change?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Set the plane length to 1.0 — because tan(45°) = 1 and FOV = 2·atan(|plane|/|dir|)</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Cast 1.5× more rays to cover the wider angle</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Multiply camera_x by 1.36 in init_ray</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="Correct. If plane were parallel to dir, dir + plane·camera_x would only stretch or shrink the same direction — every column would cast the SAME ray. Zero FOV, the whole screen shows one wall slice. Perpendicularity is what spreads the rays."
+               data-explanation-wrong="Think about what dir + plane·camera_x produces when plane is parallel to dir: a vector that's always a scalar multiple of dir. Every column then looks in the same direction...">
+            <h3 class="quiz-question">Evaluator: "Why must <code>plane</code> be perpendicular to <code>dir</code>? What if it weren't?"</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>DDA would divide by zero on the first step</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Textures would render upside down on N/S walls</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Parallel plane ⇒ every ray is a multiple of dir ⇒ all columns look the same way — the FOV collapses to zero; perpendicularity is what fans the rays out</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module3')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module3')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+<section class="module" id="module-4" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">04</span>
+      <h1 class="module-title">DDA: Walking the Grid</h1>
+      <p class="module-subtitle">Given a ray, find the first wall it hits — exactly, in a handful of additions per cell. This is the algorithm the project is named for.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Why not just step in tiny increments?</h2>
+        <p>The naive approach — advance the ray by 0.01 and check the cell each time — has two fatal flaws, and naming them is a great eval answer:</p>
+
+        <div class="pattern-cards stagger-children">
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-error)">
+            <div class="pattern-icon" style="background: var(--color-error)">🕳️</div>
+            <h4 class="pattern-title">It can miss</h4>
+            <p class="pattern-desc">A fixed step can jump clean over a wall corner or land just past a thin boundary. Any step size is either wrong somewhere or absurdly slow.</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-error)">
+            <div class="pattern-icon" style="background: var(--color-error)">🐢</div>
+            <h4 class="pattern-title">It's slow</h4>
+            <p class="pattern-desc">Hundreds of samples per ray × 1280 rays × 60 fps. DDA does it in one operation per <em>cell crossed</em> — typically 5–20 per ray.</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-success)">
+            <div class="pattern-icon" style="background: var(--color-success)">📐</div>
+            <h4 class="pattern-title">DDA is exact</h4>
+            <p class="pattern-desc">A ray only ever enters a new cell by crossing a vertical or horizontal grid line. So only check those crossings — every cell on the path, none skipped.</p>
+          </div>
+        </div>
+
+        <p>The <span class="term" data-definition="Digital Differential Analyzer. The 'differential' is the constant increment: crossing consecutive vertical grid lines always costs the same distance along the ray (delta_x), same for horizontal (delta_y). Precompute both, then the loop is pure addition and comparison.">DDA</span> insight: the ray's crossings with vertical lines are evenly spaced along the ray, and so are its crossings with horizontal lines. Precompute the two spacings, then race them against each other.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">delta_dist — the only real derivation</h2>
+        <p>How far do you travel <em>along the ray</em> to move exactly 1 unit in x? Pythagoras on the triangle with legs 1 and dir_y/dir_x:</p>
+
+        <div style="background: var(--color-bg-code); color:#CDD6F4; border-radius: var(--radius-md); padding: var(--space-6); font-family: var(--font-mono); font-size: var(--text-base); line-height: 2.1; box-shadow: var(--shadow-md);">
+          deltaDistX = √(1 + dir_y²/dir_x²) = |rayDir| / |dir_x|<br>
+          deltaDistY = √(1 + dir_x²/dir_y²) = |rayDir| / |dir_y|<br>
+          <span style="color:#6C7086">// divide both by |rayDir| — every distance scales uniformly:</span><br>
+          deltaDistX = <span style="color:#A6E3A1">|1 / dir_x|</span> &nbsp;&nbsp; deltaDistY = <span style="color:#A6E3A1">|1 / dir_y|</span>
+        </div>
+
+        <p>Dividing all distances by <code>|rayDir|</code> is legal because DDA only ever <em>compares</em> side_dists and the renderer only needs distance in consistent units. The payoff is huge: the code never normalizes the ray, and the distance that falls out at the end is already the <strong>perpendicular</strong> distance the projection wants (module 5 proves it).</p>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Defend this exact line: <code>delta_x = fabs(1.0 / ray-&gt;dir_x)</code></strong>
+            <p>"Distance along the ray per unit of x, expressed in units of the ray's own length." If <code>dir_x == 0</code> the ray is perfectly vertical and never crosses a vertical line — the code stores <code>1e30</code> so the X side always loses the comparison, without ever producing <code>inf</code> or dividing by zero.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">side_dist — getting to the first grid line</h2>
+        <p><code>delta</code> is the spacing <em>between</em> crossings; <code>side_dist</code> is the head start: distance from the player to the <em>first</em> crossing on each axis. It depends on where the player stands inside the cell, and on the ray's sign:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/execution/ray_utils.c — init_step_side</span>
+            <pre><code>
+<span class="code-line"><span class="code-keyword">if</span> (ray-&gt;dir_x &lt; <span class="code-number">0</span>)</span>
+<span class="code-line">{</span>
+<span class="code-line">    ray-&gt;step_x = -<span class="code-number">1</span>;</span>
+<span class="code-line">    ray-&gt;side_dist_x = (p-&gt;pos_x - ray-&gt;map_x) * ray-&gt;delta_x;</span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-keyword">else</span></span>
+<span class="code-line">{</span>
+<span class="code-line">    ray-&gt;step_x = <span class="code-number">1</span>;</span>
+<span class="code-line">    ray-&gt;side_dist_x = (ray-&gt;map_x + <span class="code-number">1.0</span> - p-&gt;pos_x) * ray-&gt;delta_x;</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Ray points left (−x): the next vertical line is the cell's LEFT edge.</p>
+              <p class="tl">So each DDA step on this axis will decrement map_x.</p>
+              <p class="tl">The fraction of a cell between the player and that left edge is (pos_x − map_x); multiply by delta_x to convert "cells of x" into "distance along the ray".</p>
+              <p class="tl">Ray points right (+x): the next vertical line is the RIGHT edge.</p>
+              <p class="tl">Steps will increment map_x.</p>
+              <p class="tl">Distance to the right edge is (map_x + 1 − pos_x) cells of x — note the +1.0, the single most bug-prone constant in the whole raycaster.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">The loop: two runners racing</h2>
+        <p>Picture two runners on the same ray: one stops at every vertical grid line, one at every horizontal line. At each iteration, whoever is <em>behind</em> takes their next stride. Whichever runner moves, that axis was crossed — and that's recorded as <code>side</code>.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/execution/raycaster.c — run_dda</span>
+            <pre><code>
+<span class="code-line"><span class="code-keyword">if</span> (ray-&gt;side_dist_x &lt; ray-&gt;side_dist_y)</span>
+<span class="code-line">{</span>
+<span class="code-line">    ray-&gt;side_dist_x += ray-&gt;delta_x;</span>
+<span class="code-line">    ray-&gt;map_x += ray-&gt;step_x;</span>
+<span class="code-line">    ray-&gt;side = <span class="code-number">0</span>;</span>
+<span class="code-line">}</span>
+<span class="code-line"><span class="code-keyword">else</span></span>
+<span class="code-line">{</span>
+<span class="code-line">    ray-&gt;side_dist_y += ray-&gt;delta_y;</span>
+<span class="code-line">    ray-&gt;map_y += ray-&gt;step_y;</span>
+<span class="code-line">    ray-&gt;side = <span class="code-number">1</span>;</span>
+<span class="code-line">}</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">The next vertical-line crossing is closer than the next horizontal one…</p>
+              <p class="tl">…so take that crossing: schedule the one after it (add the constant spacing delta_x)…</p>
+              <p class="tl">…and enter the neighboring cell on the x axis.</p>
+              <p class="tl">side = 0 remembers "I entered through a vertical line" → I'm looking at an East/West-facing wall.</p>
+              <p class="tl">Otherwise the horizontal crossing comes first — same logic on y.</p>
+              <p class="tl">side = 1 → entered through a horizontal line → North/South-facing wall. After moving, the loop checks bounds and whether grid[map_y][map_x] == '1'.</p>
+            </div>
+          </div>
+        </div>
+
+        <p>Loop exit conditions, in order: the new cell is out of bounds (jagged rows make the per-row <code>ft_strlen</code> check necessary), or the cell is a wall. <code>side</code> keeps the value from the <strong>last</strong> step — the axis through which the wall was entered. That single int later picks the texture and the fisheye formula.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Spot the bug</h2>
+        <p>This is a <em>deliberately broken</em> version of <code>init_step_side</code>'s positive branch — the kind of bug that makes walls wobble as you strafe. Click the broken line.</p>
+
+        <div class="bug-challenge">
+          <div class="bug-code">
+            <div class="bug-line" onclick="checkBugLine(this, false)">
+              <span class="line-num">1</span>
+              <code>if (ray-&gt;dir_x &lt; 0)</code>
+            </div>
+            <div class="bug-line" onclick="checkBugLine(this, false)">
+              <span class="line-num">2</span>
+              <code>{</code>
+            </div>
+            <div class="bug-line" onclick="checkBugLine(this, false)">
+              <span class="line-num">3</span>
+              <code>    ray-&gt;step_x = -1;</code>
+            </div>
+            <div class="bug-line" onclick="checkBugLine(this, false)">
+              <span class="line-num">4</span>
+              <code>    ray-&gt;side_dist_x = (p-&gt;pos_x - ray-&gt;map_x) * ray-&gt;delta_x;</code>
+            </div>
+            <div class="bug-line" onclick="checkBugLine(this, false)">
+              <span class="line-num">5</span>
+              <code>}</code>
+            </div>
+            <div class="bug-line" onclick="checkBugLine(this, false)">
+              <span class="line-num">6</span>
+              <code>else</code>
+            </div>
+            <div class="bug-line" onclick="checkBugLine(this, false)">
+              <span class="line-num">7</span>
+              <code>{</code>
+            </div>
+            <div class="bug-line" onclick="checkBugLine(this, false)">
+              <span class="line-num">8</span>
+              <code>    ray-&gt;step_x = 1;</code>
+            </div>
+            <div class="bug-line bug-target" onclick="checkBugLine(this, true)">
+              <span class="line-num">9</span>
+              <code>    ray-&gt;side_dist_x = (ray-&gt;map_x - p-&gt;pos_x) * ray-&gt;delta_x;</code>
+            </div>
+            <div class="bug-line" onclick="checkBugLine(this, false)">
+              <span class="line-num">10</span>
+              <code>}</code>
+            </div>
+          </div>
+          <div class="bug-feedback" id="bug-feedback-m4"></div>
+        </div>
+
+        <div class="callout callout-info">
+          <div class="callout-icon">🔍</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why it matters</strong>
+            <p>The real code uses <code>(map_x + 1.0 - pos_x)</code>: the distance to the cell's <em>right</em> edge. The buggy version computes <code>map_x − pos_x</code>, which is ≤ 0 — a negative head start. The first comparison then always favors x, walls shift by up to a cell, and the error changes as the player moves inside the cell: walls "swim". If an evaluator asks "what's the +1.0 for?", this is the answer.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Checkpoint: DDA under fire</h2>
+
+        <div class="quiz-container" id="quiz-module4">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Exactly. side records which comparison won LAST — i.e. which grid line the ray crossed to enter the wall cell. Crossed a vertical line (side 0) → you see its E or W face; horizontal (side 1) → N or S face. step_x/step_y signs then choose between the two."
+               data-explanation-wrong="side is set inside the loop every iteration and keeps its final value: the axis of the LAST crossing before the wall was found. That's the face you actually hit...">
+            <h3 class="quiz-question">"What exactly does <code>side</code> mean and what is it used for?"</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Which half of the screen the column is on (left/right of center)</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>The axis of the last grid line crossed before hitting the wall — 0 = vertical (E/W face), 1 = horizontal (N/S face); it selects the perp_dist formula and, with the step signs, the texture</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Whether the ray direction is mostly horizontal or mostly vertical</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="Right — delta_y = |1/dir_y| = 1e30 effectively (dir_y = 0 handled explicitly). side_dist_y is astronomically large, so the comparison always picks x: the ray walks pure horizontal cells, which is geometrically correct. No NaN, no crash."
+               data-explanation-wrong="Check init_ray: if (ray->dir_y == 0) delta_y = 1e30. A huge-but-finite delta means side_dist_y can never win the race — the ray only ever steps in x. That's exactly what a horizontal ray should do.">
+            <h3 class="quiz-question">A ray points exactly East: dir = (1, 0). Does the division by <code>dir_y</code> break the DDA?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>No — the code special-cases it to 1e30, so the y-runner never wins and the ray correctly steps only along x</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Yes — it's undefined behavior, but it happens too rarely to notice</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>No — IEEE 754 gives +inf and inf works fine in comparisons, the code relies on that</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="Correct. The walls around the map normally stop every ray, but a validated-but-jagged map still has rows of different lengths — and during development, before validate_map existed, a ray could escape. The bounds check (including per-row strlen) makes run_dda safe independently of parsing, instead of trusting another module for memory safety."
+               data-explanation-wrong="Think defensively: validate_map guarantees walkable cells are enclosed, but run_dda indexes grid[map_y][map_x] directly on jagged rows. The check costs almost nothing and makes the DDA memory-safe on its own...">
+            <h3 class="quiz-question">"Your map is validated as enclosed. Why does <code>run_dda</code> still bounds-check every cell?"</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It doesn't need to — it's dead code kept for the Norm line count</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Because rays can tunnel through wall corners at exactly 45°</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Defense in depth: rows are jagged and the renderer shouldn't rely on the parser for its memory safety — the per-row strlen check makes an out-of-map ray break cleanly instead of reading out of bounds</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module4')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module4')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+<section class="module" id="module-5" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">05</span>
+      <h1 class="module-title">Projection, Fisheye &amp; Textures</h1>
+      <p class="module-subtitle">The ray hit a wall. Now: how tall is the stripe, why isn't it curved, and which texture pixels fill it?</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Fisheye: the bug you fix by never creating it</h2>
+        <p>Use the straight-line (<span class="term" data-definition="The ordinary straight-line distance: sqrt(dx² + dy²). Using it for wall height makes walls bulge, because side rays travel further to reach the SAME flat wall than the center ray does.">Euclidean</span>) distance to the wall and a flat wall renders as a barrel: edge rays are longer than the center ray even when the wall is straight ahead, so edge columns draw shorter. The cure: measure distance <strong>perpendicular to the camera plane</strong> — how far the wall is "in front of" you, ignoring the sideways component.</p>
+
+        <svg viewBox="0 0 640 270" style="width:100%; height:auto; display:block; margin: var(--space-6) 0; background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);" role="img" aria-label="Diagram comparing Euclidean ray distance with perpendicular distance to the camera plane">
+          <!-- wall -->
+          <rect x="60" y="30" width="520" height="18" fill="#2C2A28"/>
+          <text x="290" y="24" font-family="DM Sans, sans-serif" font-size="13" fill="#6B6560">flat wall</text>
+          <!-- camera plane line -->
+          <line x1="120" y1="200" x2="520" y2="200" stroke="#2A7B9B" stroke-width="2.5"/>
+          <text x="528" y="205" font-family="JetBrains Mono, monospace" font-size="13" fill="#2A7B9B">camera plane</text>
+          <!-- player -->
+          <circle cx="320" cy="200" r="7" fill="#D94F30"/>
+          <!-- center ray -->
+          <line x1="320" y1="200" x2="320" y2="48" stroke="#D94F30" stroke-width="2"/>
+          <!-- edge ray euclidean -->
+          <line x1="320" y1="200" x2="140" y2="48" stroke="#C93B3B" stroke-width="2" stroke-dasharray="6 4"/>
+          <text x="150" y="130" font-family="DM Sans, sans-serif" font-size="13" fill="#C93B3B" transform="rotate(-40 170 130)">Euclidean: longer ✗</text>
+          <!-- perp distance bracket -->
+          <line x1="140" y1="48" x2="140" y2="200" stroke="#2D8B55" stroke-width="2"/>
+          <text x="84" y="130" font-family="DM Sans, sans-serif" font-size="13" fill="#2D8B55">perp: same ✓</text>
+          <text x="330" y="130" font-family="DM Sans, sans-serif" font-size="13" fill="#6B6560">both columns must draw the same height</text>
+        </svg>
+
+        <p>The elegant part of this implementation: the perpendicular distance is <em>never computed from the Euclidean one</em>. It falls straight out of the DDA bookkeeping:</p>
+
+        <div style="background: var(--color-bg-code); color:#CDD6F4; border-radius: var(--radius-md); padding: var(--space-6); font-family: var(--font-mono); font-size: var(--text-sm); line-height: 2.1; box-shadow: var(--shadow-md);">
+          <span style="color:#6C7086">// hit = pos + t·rayDir. The scaled side_dists measure exactly t,</span><br>
+          <span style="color:#6C7086">// because crossing 1 unit of x costs Δt = 1/|dir_x| (our delta).</span><br>
+          <span style="color:#6C7086">// The loop overshoots by one step, so undo it:</span><br>
+          t = side_dist − delta &nbsp;<span style="color:#6C7086">(for the axis that was hit)</span><br>
+          <br>
+          <span style="color:#6C7086">// perpendicular distance = (hit − pos) projected onto unit dir:</span><br>
+          perpDist = t·rayDir · dir = t·(dir + plane·camera_x) · dir<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = t·(|dir|² + camera_x·(plane·dir)) = t·(1 + 0) = <span style="color:#A6E3A1">t</span>
+        </div>
+
+        <p>Because <code>|dir| = 1</code> and <code>plane ⊥ dir</code>, the projection collapses to <code>t</code> itself. So <code>perp_dist = side_dist − delta</code> — one subtraction, fisheye-free by construction. This derivation is the strongest answer in the entire evaluation.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">From distance to a stripe on screen</h2>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/execution/ray_utils.c — calc_draw_params</span>
+            <pre><code>
+<span class="code-line"><span class="code-keyword">if</span> (ray-&gt;side == <span class="code-number">0</span>)</span>
+<span class="code-line">    ray-&gt;perp_dist = ray-&gt;side_dist_x - ray-&gt;delta_x;</span>
+<span class="code-line"><span class="code-keyword">else</span></span>
+<span class="code-line">    ray-&gt;perp_dist = ray-&gt;side_dist_y - ray-&gt;delta_y;</span>
+<span class="code-line"><span class="code-keyword">if</span> (ray-&gt;perp_dist &lt; <span class="code-number">0.001</span>)</span>
+<span class="code-line">    ray-&gt;perp_dist = <span class="code-number">0.001</span>;</span>
+<span class="code-line">dw-&gt;height = (<span class="code-keyword">int</span>)(WIN_H / ray-&gt;perp_dist);</span>
+<span class="code-line">dw-&gt;start = horizon - dw-&gt;height / <span class="code-number">2</span>;</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Hit through a vertical line? Then the x-runner's bookkeeping holds the answer…</p>
+              <p class="tl">…subtract one delta to undo the loop's final overshoot. That IS the perpendicular distance.</p>
+              <p class="tl">Same on the y side for horizontal hits.</p>
+              <p class="tl">Clamp near-zero distance — standing flush against a wall must not divide by ~0.</p>
+              <p class="tl">Similar triangles: a 1-unit-tall wall at distance d projects to WIN_H/d pixels. At d = 1 the wall exactly fills the 720px screen.</p>
+              <p class="tl">Center the stripe on the horizon (WIN_H/2 in the mandatory spec) — equal wall above and below eye level. start/end are then clamped to the screen.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Why height = WIN_H / perp_dist?</strong>
+            <p>Walls are 1 unit tall and the projection plane sits at distance 1 (the dir length). Similar triangles: projected size / screen scale = real size / distance ⇒ pixels = WIN_H · (1 / perp_dist). Double the distance, half the stripe. Linear, no trig.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Which texture, and which column of it?</h2>
+        <p>Two decisions. <strong>Which texture:</strong> <code>side</code> + step sign. Hit a vertical line while stepping left (<code>step_x &lt; 0</code>)? You're looking at the block's east-facing side from the west → <code>WE</code>. The other three follow the same logic. <strong>Which column of the texture:</strong> where along the wall's face the hit landed:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/render/draw_wall.c — calc_wall_x / calc_tex_x</span>
+            <pre><code>
+<span class="code-line"><span class="code-keyword">if</span> (ray-&gt;side == <span class="code-number">0</span>)</span>
+<span class="code-line">    wall_x = p-&gt;pos_y + ray-&gt;perp_dist * ray-&gt;dir_y;</span>
+<span class="code-line"><span class="code-keyword">else</span></span>
+<span class="code-line">    wall_x = p-&gt;pos_x + ray-&gt;perp_dist * ray-&gt;dir_x;</span>
+<span class="code-line">wall_x -= <span class="code-function">floor</span>(wall_x);</span>
+<span class="code-line">tex_x = (<span class="code-keyword">int</span>)(wall_x * tex-&gt;width);</span>
+<span class="code-line"><span class="code-keyword">if</span> (ray-&gt;side == <span class="code-number">0</span> &amp;&amp; ray-&gt;dir_x &gt; <span class="code-number">0</span>)</span>
+<span class="code-line">    tex_x = (tex-&gt;width - <span class="code-number">1</span>) - tex_x;</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Hit a vertical wall face? The hit's x is a known grid line — the interesting coordinate is y.</p>
+              <p class="tl">Reconstruct it: pos + t·rayDir, using perp_dist as t (the same t from the projection proof — one more payoff of the scaled units).</p>
+              <p class="tl">Horizontal face: symmetric, take the x coordinate.</p>
+              <p class="tl"></p>
+              <p class="tl">Keep only the fractional part: 0.0 = one edge of this wall block, 1.0 = the other. That's the horizontal position ON the wall face.</p>
+              <p class="tl">Scale [0,1) into texture pixel columns.</p>
+              <p class="tl">Mirror correction: depending on which side you view the face from, "left along the wall" flips. Without this, opposing faces render mirror-imaged — text on walls reads backwards.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Painting the column: texture stepping</h2>
+        <p>The stripe is <code>height</code> pixels tall but the texture is 64. One texel per screen pixel, walked with a fixed-point style accumulator — no division per pixel:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/render/draw_wall.c — draw_wall_stripe</span>
+            <pre><code>
+<span class="code-line">dw.step = (<span class="code-keyword">double</span>)tex-&gt;height / dw.height;</span>
+<span class="code-line">dw.pos = (dw.start - cub-&gt;horizon + dw.height / <span class="code-number">2</span>) * dw.step;</span>
+<span class="code-line"><span class="code-function">draw_ceiling</span>(cub, x, dw.start);</span>
+<span class="code-line"><span class="code-function">draw_tex_col</span>(cub, x, &amp;dw, tex);</span>
+<span class="code-line"><span class="code-function">draw_floor</span>(cub, x, dw.end + <span class="code-number">1</span>);</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">How many texture rows per screen row. Far wall: stripe is short, step &gt; 1, texture is skimmed. Close wall: step &lt; 1, texels repeat.</p>
+              <p class="tl">The anchor trick: if the wall is taller than the screen, start was clamped to 0 — so we must begin sampling partway INTO the texture, not at row 0. This computes exactly how far in. Unclamped stripes give 0 here.</p>
+              <p class="tl">Solid ceiling color from the top of the screen down to the stripe.</p>
+              <p class="tl">Then the textured wall: each row reads texel (tex_x, (int)pos), advances pos by step.</p>
+              <p class="tl">Then solid floor color down to the bottom. Three bands = the entire column drawn, every pixel exactly once.</p>
+            </div>
+          </div>
+        </div>
+
+        <p>One byte-level detail to own: <code>put_px</code> computes <code>data + y·line_len + x·(bpp/8)</code> and writes through an <code>unsigned int *</code> cast. <code>line_len</code> is the <em>padded</em> bytes-per-row MLX reports — using <code>WIN_W·4</code> instead is the classic skewed-image bug. And writing without the cast would store a single byte instead of 4 (blue-only screen).</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Checkpoint: projection questions</h2>
+
+        <div class="quiz-container" id="quiz-module5">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Exactly. Walls would bow outward like a barrel: edge rays travel further to the same flat wall, so edge columns get smaller height values. Straight ahead it's subtle; close to a long wall it's unmistakable."
+               data-explanation-wrong="Euclidean distance is larger for edge rays than the center ray even on a flat wall directly ahead. Larger distance → shorter stripe → the wall's silhouette curves...">
+            <h3 class="quiz-question">The evaluator asks: "What would I see if you used the Euclidean ray length instead of perp_dist?"</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Nothing changes — both distances are equal for every ray</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Fisheye: flat walls bulge in the middle of the screen and shrink at the edges, warping as you turn</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Walls render upside down because the sign of the distance flips</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="Right. side = 1 means a horizontal grid line was crossed, and step_y = −1 means the ray was traveling north (y decreases upward on the map). The wall is therefore NORTH of the player — and by the subject's convention, walls you see when looking north wear the NO texture. side picks the axis, the step sign picks which of the two faces."
+               data-explanation-wrong="select_texture: side == 1 selects between NO and SO using step_y. step_y < 0 → TEX_NO, else TEX_SO. side + step sign uniquely determine the wall face.">
+            <h3 class="quiz-question">A ray ends with <code>side = 1</code> and <code>step_y = −1</code>. Which texture does <code>select_texture</code> return?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span><code>TEX_NO</code> — horizontal face, ray stepping north</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span><code>TEX_WE</code> — side 1 means West</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span><code>TEX_SO</code> — negative step always means South</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="Exactly. start clamps to 0 and end to WIN_H−1, so the visible part is drawn — and dw.pos's anchor formula (start − horizon + height/2)·step computes how deep into the texture the visible top edge is, so the texture doesn't stretch or jump."
+               data-explanation-wrong="Two mechanisms cooperate: start/end clamping keeps the loop on-screen, and the dw.pos anchor starts sampling partway into the texture. Without the second part, the texture would visibly slide when the stripe gets clipped.">
+            <h3 class="quiz-question">You stand almost touching a wall — the stripe height is 5000 pixels on a 720-pixel screen. What stops this from breaking?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>perp_dist is clamped to a minimum of 1.0, so stripes never exceed the screen</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>put_px silently discards every off-screen pixel, so drawing 5000 rows is fine, just slow</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>start/end are clamped to the screen, and dw.pos is pre-advanced so sampling begins mid-texture — the visible slice shows the correct part of the texture</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module5')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module5')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+<section class="module" id="module-6" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">06</span>
+      <h1 class="module-title">Movement, Rotation &amp; the Evaluation</h1>
+      <p class="module-subtitle">The last moving parts — then a mock evaluation covering the traps evaluators actually set.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Rotation: one matrix, two vectors</h2>
+        <p>Turning left/right rotates <strong>both</strong> <code>dir</code> and <code>plane</code> by the same angle with the standard 2D <span class="term" data-definition="The 2×2 matrix [cos −sin; sin cos] that rotates any vector by angle a around the origin, preserving its length. Apply it to a vector (x, y): x' = x·cos a − y·sin a, y' = x·sin a + y·cos a.">rotation matrix</span>. Rotate only <code>dir</code> and the perpendicularity breaks — the view shears and the FOV drifts every turn.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/events/rotation.c — rotate_vectors</span>
+            <pre><code>
+<span class="code-line">cos_a = <span class="code-function">cos</span>(angle);</span>
+<span class="code-line">sin_a = <span class="code-function">sin</span>(angle);</span>
+<span class="code-line">old_dir_x = p-&gt;dir_x;</span>
+<span class="code-line">p-&gt;dir_x = old_dir_x * cos_a - p-&gt;dir_y * sin_a;</span>
+<span class="code-line">p-&gt;dir_y = old_dir_x * sin_a + p-&gt;dir_y * cos_a;</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Compute sin/cos once — angle is ±ROT_SPD (0.03 rad ≈ 1.7° per frame).</p>
+              <p class="tl"></p>
+              <p class="tl">Save dir_x BEFORE overwriting it — the second line needs the OLD x. Forgetting this is the classic rotation bug: the view spirals inward and the vectors shrink.</p>
+              <p class="tl">Matrix row 1: x' = x·cos − y·sin.</p>
+              <p class="tl">Matrix row 2: y' = x·sin + y·cos. Lengths preserved exactly, so |dir| stays 1 and |plane| stays 0.66 forever — the FOV never drifts.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-content">
+            <strong class="callout-title">Heads-up: the comment above this function has a typo</strong>
+            <p>The doc comment in <code>rotation.c</code> writes the second row as <code>new_y = old_y * sin(a) + old_y * cos(a)</code> — it should be <code>old_x * sin(a) + old_y * cos(a)</code>. The <em>code</em> is correct; the <em>comment</em> isn't. An evaluator reading comments aloud might catch it — better you say it first (or fix it before the defense).</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Movement: vectors again, plus sliding collision</h2>
+        <p>W/S move along <code>±dir</code>; A/D <span class="term" data-definition="Sideways movement without turning — 'strafing'. Implemented by moving along the camera plane vector, which is by construction perpendicular to where you're looking.">strafe</span> along <code>±plane</code> — no extra math needed, the perpendicular vector already exists. The polish is in how collisions are tested:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/events/movement.c — move_along</span>
+            <pre><code>
+<span class="code-line">nx = cub-&gt;player.pos_x + sign * vx * MOVE_SPD;</span>
+<span class="code-line">ny = cub-&gt;player.pos_y + sign * vy * MOVE_SPD;</span>
+<span class="code-line"><span class="code-keyword">if</span> (<span class="code-function">can_move</span>(&amp;cub-&gt;map, nx, cub-&gt;player.pos_y))</span>
+<span class="code-line">    cub-&gt;player.pos_x = nx;</span>
+<span class="code-line"><span class="code-keyword">if</span> (<span class="code-function">can_move</span>(&amp;cub-&gt;map, cub-&gt;player.pos_x, ny))</span>
+<span class="code-line">    cub-&gt;player.pos_y = ny;</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Candidate position: current + direction vector scaled by speed (0.05 cells per frame).</p>
+              <p class="tl"></p>
+              <p class="tl">Test the x move ALONE, keeping y fixed. Legal? Apply just the x part.</p>
+              <p class="tl"></p>
+              <p class="tl">Then test the y move alone. The two axes are independent—</p>
+              <p class="tl">—which is what makes you SLIDE along a wall you walk into diagonally, instead of sticking to it. One blocked axis doesn't veto the other.</p>
+            </div>
+          </div>
+        </div>
+
+        <p><code>can_move()</code> itself doesn't test a point — it tests a <strong>0.2-radius bounding box</strong>: all four corners of a small square around the candidate position must land in non-wall cells. That keeps an air gap from walls (no texture z-fighting against your face) and stops corner-clipping diagonally between two walls.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Lifecycle, memory, and what counts as "extra"</h2>
+
+        <div class="step-cards">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>Two exit doors, one cleanup</strong>
+              <p>ESC and the window's ✕ both land in <code>close_hook</code> → <code>mlx_loop_end</code> → <code>cub_destroy</code> → <code>exit(0)</code>. Error paths take <code>exit_error</code> → same <code>cub_destroy</code> → <code>exit(1)</code>. One free-everything function, called from every door.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>Destroy order matters</strong>
+              <p><code>cub_destroy</code>: textures → screen image → window → display → grid → texture path strings. MLX resources before <code>mlx_destroy_display</code>, and every step guarded so the function is safe whether you crashed during parsing or after an hour of play.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>Know your mandatory vs. polish</strong>
+              <p>Distance fog (<code>FOG_K</code>), darker N/S faces (<code>SIDE_SHADE</code>), floor/ceiling gradients, head-bob (<code>horizon</code>, <code>bob_t</code>) and the crosshair are <em>extras layered onto the mandatory part</em>. Be ready to point at them, say "this is polish, here's the line where the mandatory behavior would be <code>WIN_H / 2</code> and a flat color", and explain them anyway.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Match the symptom to the broken part</h2>
+        <p>Debugging intuition is what evaluators probe with "what would happen if…". Drag each symptom onto its cause.</p>
+
+        <div class="dnd-container" id="dnd-module6">
+          <div class="dnd-chips">
+            <div class="dnd-chip" draggable="true" data-answer="fisheye">Walls bulge like a barrel</div>
+            <div class="dnd-chip" draggable="true" data-answer="mirror">Wall textures read mirror-imaged</div>
+            <div class="dnd-chip" draggable="true" data-answer="spiral">View shrinks/spirals while turning</div>
+            <div class="dnd-chip" draggable="true" data-answer="stick">Player sticks to walls on diagonal contact</div>
+          </div>
+          <div class="dnd-zones">
+            <div class="dnd-zone" data-correct="fisheye">
+              <p class="dnd-zone-label">Used Euclidean ray length instead of <code>side_dist − delta</code></p>
+              <div class="dnd-zone-target">Drop here</div>
+            </div>
+            <div class="dnd-zone" data-correct="mirror">
+              <p class="dnd-zone-label">Removed the <code>tex_x = (width − 1) − tex_x</code> flip in <code>calc_tex_x</code></p>
+              <div class="dnd-zone-target">Drop here</div>
+            </div>
+            <div class="dnd-zone" data-correct="spiral">
+              <p class="dnd-zone-label">Forgot to save <code>old_dir_x</code> before overwriting in <code>rotate_vectors</code></p>
+              <div class="dnd-zone-target">Drop here</div>
+            </div>
+            <div class="dnd-zone" data-correct="stick">
+              <p class="dnd-zone-label">Tested the full (x, y) move at once instead of per-axis in <code>move_along</code></p>
+              <div class="dnd-zone-target">Drop here</div>
+            </div>
+          </div>
+          <div class="dnd-controls">
+            <button class="btn" onclick="checkDnD('dnd-module6')">Check Matches</button>
+            <button class="btn" onclick="resetDnD('dnd-module6')">Reset</button>
+          </div>
+          <div class="dnd-feedback"></div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Mock evaluation — final round</h2>
+        <p>Five questions, the kind that decide between "passed" and "outstanding".</p>
+
+        <div class="quiz-container" id="quiz-module6">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Exactly — and this is worth saying unprompted: X11 key auto-repeat sends press/release bursts, so moving inside key_press gives stuttering speed tied to the OS repeat rate, and two keys can't be held at once. State array + per-frame application solves all of it."
+               data-explanation-wrong="Think about holding W and D together, and about the OS keyboard auto-repeat rate. Events are bursty and serialized; frames are regular. The keys[] array converts one into the other.">
+            <h3 class="quiz-question">"Why a <code>keys[]</code> array? Why not move the player directly in the KeyPress hook?"</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Because MLX forbids changing game state inside hooks</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Events are bursty (OS auto-repeat) and one-at-a-time; recording held state and applying it once per frame gives smooth speed and simultaneous W+D movement</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It's faster — array writes are cheaper than position updates</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="Correct on both counts: side 0 ⇒ the perpendicular distance comes from the x bookkeeping, and step_x tells which face. The full answer chains DDA → perp_dist → texture in one breath: side and step are the only outputs the renderer needs besides the distance."
+               data-explanation-wrong="side = 0 means the final crossing was a vertical grid line. perp_dist must then be side_dist_x − delta_x, and the face is West or East depending on step_x's sign.">
+            <h3 class="quiz-question">A ray finishes with <code>side = 0</code>, <code>step_x = +1</code>. Which formula gives perp_dist, and which texture is drawn?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span><code>side_dist_y − delta_y</code>; TEX_NO</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span><code>side_dist_x − delta_x</code>; TEX_WE</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span><code>side_dist_x − delta_x</code>; TEX_EA</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="Right — the unnormalized ray is the point. delta = |1/dir| measures distance in units of |rayDir|, every column's t is in its own consistent unit, and side_dist − delta lands directly on the perpendicular distance. Normalizing would force you to compute the fisheye correction explicitly."
+               data-explanation-wrong="It's intentional and load-bearing. Ask: what units does delta = |1/dir_x| measure distance in? And what does the projection proof in module 5 rely on?">
+            <h3 class="quiz-question">"Your ray direction <code>dir + plane·camera_x</code> isn't normalized. Bug or feature?"</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Feature: all DDA distances are measured in units of the ray's own length, which makes <code>side_dist − delta</code> equal the perpendicular distance directly — normalization would reintroduce fisheye math</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Bug, but invisible: the error is under one pixel per column</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Feature: skipping sqrt makes it faster, accuracy is sacrificed deliberately</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Exactly. 0.2 cells of padding around the player: corner_blocked is called for the 4 corners of that square. A pure point test lets the camera touch the wall plane (perp_dist → 0, giant stripes) and allows slipping through corner gaps."
+               data-explanation-wrong="COLLISION = 0.2 in cub3d.h, used in can_move: the four tested points are (x ± 0.2, y ± 0.2). It's a bounding box around the player, not a single point.">
+            <h3 class="quiz-question">"What does the COLLISION 0.2 constant do, exactly?"</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Minimum perp_dist clamp so the projection never divides by zero</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Half-size of the player's collision box: all 4 corners of a 0.4×0.4 square must be in walkable cells, keeping an air gap and preventing corner clipping</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Movement speed multiplier applied when strafing</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="That's the complete chain, compressed. If you can deliver this answer smoothly — file to pixels in under a minute — the evaluation is yours. Go run ./cub3D and watch the code in your head while you walk around."
+               data-explanation-wrong="Build the chain in order: parse/validate once at startup; then per frame: keys → move/rotate vectors → per column: ray from dir + plane·camera_x → DDA to a wall → perp_dist → stripe height → texture column → image → one blit.">
+            <h3 class="quiz-question">Final boss — pick the correct one-breath summary of the whole program:</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Parse map → for each frame, rotate the map around the player → draw visible cells as 3D cubes with MLX → repeat</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Parse map → trace one ray per pixel with reflections → shade by light distance → push pixels per ray</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Parse &amp; validate once → each frame: apply held keys to pos/dir/plane → for each of 1280 columns, ray = dir + plane·camera_x, DDA to the first wall, perp_dist = side_dist − delta → stripe height WIN_H/perp_dist, textured via wall_x → blit the finished image once</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module6')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module6')">Try Again</button>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">🎓</div>
+          <div class="callout-content">
+            <strong class="callout-title">You're ready when…</strong>
+            <p>…you can answer "how did you do X?" by naming the file, the function, the formula, and the <em>reason</em> — in that order. Your Python notebooks in <code>Cub3d_learn/math/</code> (camera &amp; ray, delta/side_dist, DDA, fisheye, texture coords) mirror modules 3–5 here: re-derive each one on paper once before the defense.</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
+  </main>
+
+</body>
+</html>

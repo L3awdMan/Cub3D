@@ -1,0 +1,214 @@
+<section class="module" id="module-3" style="background: var(--color-bg-warm)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">03</span>
+      <h1 class="module-title">The Camera Without Angles</h1>
+      <p class="module-subtitle">No angle variable anywhere in the code — the camera is two vectors. This is the single most important idea to defend at the table.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Three things define the view</h2>
+        <p>The whole camera is five doubles in <code>t_player</code>: a position, a <strong>direction vector</strong> <code>dir</code> (unit length), and a <strong>camera plane vector</strong> <code>plane</code> (length 0.66, always <span class="term" data-definition="Two vectors are perpendicular when their dot product is zero. Here plane is dir rotated 90 degrees and scaled: if dir = (dx, dy), then plane = ±0.66 · (−dy, dx).">perpendicular</span> to <code>dir</code>).</p>
+
+        <svg viewBox="0 0 640 340" style="width:100%; height:auto; display:block; margin: var(--space-6) 0; background: var(--color-surface); border-radius: var(--radius-md); box-shadow: var(--shadow-sm);" role="img" aria-label="Top-down diagram of the player position, direction vector, camera plane and the rays to the screen edges">
+          <defs>
+            <marker id="arrowAcc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#D94F30"/>
+            </marker>
+            <marker id="arrowTeal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#2A7B9B"/>
+            </marker>
+            <marker id="arrowPlum" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#7B6DAA"/>
+            </marker>
+          </defs>
+          <!-- grid -->
+          <g stroke="#EEEBE5" stroke-width="1">
+            <line x1="0" y1="60" x2="640" y2="60"/><line x1="0" y1="140" x2="640" y2="140"/>
+            <line x1="0" y1="220" x2="640" y2="220"/><line x1="0" y1="300" x2="640" y2="300"/>
+            <line x1="80" y1="0" x2="80" y2="340"/><line x1="160" y1="0" x2="160" y2="340"/>
+            <line x1="240" y1="0" x2="240" y2="340"/><line x1="320" y1="0" x2="320" y2="340"/>
+            <line x1="400" y1="0" x2="400" y2="340"/><line x1="480" y1="0" x2="480" y2="340"/>
+            <line x1="560" y1="0" x2="560" y2="340"/>
+          </g>
+          <!-- rays to plane edges -->
+          <line x1="200" y1="260" x2="440" y2="60" stroke="#E8836C" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <line x1="200" y1="260" x2="440" y2="260" stroke="#E8836C" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <!-- dir vector -->
+          <line x1="200" y1="260" x2="430" y2="160" stroke="#D94F30" stroke-width="3" marker-end="url(#arrowAcc)"/>
+          <!-- camera plane -->
+          <line x1="440" y1="160" x2="440" y2="60" stroke="#2A7B9B" stroke-width="3" marker-end="url(#arrowTeal)"/>
+          <line x1="440" y1="160" x2="440" y2="260" stroke="#2A7B9B" stroke-width="3" stroke-dasharray="6 4"/>
+          <!-- player -->
+          <circle cx="200" cy="260" r="8" fill="#D94F30"/>
+          <!-- labels -->
+          <text x="170" y="290" font-family="JetBrains Mono, monospace" font-size="14" fill="#2C2A28">pos</text>
+          <text x="300" y="195" font-family="JetBrains Mono, monospace" font-size="14" fill="#D94F30">dir (len 1)</text>
+          <text x="452" y="105" font-family="JetBrains Mono, monospace" font-size="14" fill="#2A7B9B">+plane</text>
+          <text x="452" y="235" font-family="JetBrains Mono, monospace" font-size="14" fill="#2A7B9B">−plane</text>
+          <text x="455" y="65" font-family="DM Sans, sans-serif" font-size="13" fill="#6B6560">camera_x = +1 (right edge, x = 1279)</text>
+          <text x="455" y="160" font-family="DM Sans, sans-serif" font-size="13" fill="#6B6560">camera_x = 0 (screen center)</text>
+          <text x="455" y="278" font-family="DM Sans, sans-serif" font-size="13" fill="#6B6560">camera_x = −1 (left edge, x = 0)</text>
+        </svg>
+
+        <p>The segment from <code>dir + plane·(−1)</code> to <code>dir + plane·(+1)</code> <em>is</em> your screen, laid flat inside the 2D world. Casting a ray through screen column <code>x</code> means aiming at the matching point on that segment.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Why 0.66? The FOV math</h2>
+        <p>Half the screen spans from the tip of <code>dir</code> to the tip of <code>plane</code>. Those two are perpendicular, so the half-angle of the <span class="term" data-definition="Field Of View — the angular width of what the camera sees. Wolfenstein-style engines use about 66 degrees; 90 degrees starts to look distorted at the edges with this projection.">FOV</span> satisfies a right-triangle relation:</p>
+
+        <div style="background: var(--color-bg-code); color:#CDD6F4; border-radius: var(--radius-md); padding: var(--space-6); font-family: var(--font-mono); font-size: var(--text-base); line-height: 2; box-shadow: var(--shadow-md);">
+          tan(FOV / 2) = |plane| / |dir| = 0.66 / 1<br>
+          FOV = 2 · atan(0.66) ≈ <span style="color:#A6E3A1">66.8°</span>
+        </div>
+
+        <p>Want a 90° FOV? Set <code>|plane| = 1.0</code> (tan 45° = 1). The ratio of the two vector lengths <em>is</em> the FOV — nothing else in the code needs to change.</p>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">💡</div>
+          <div class="callout-content">
+            <strong class="callout-title">Raycasting is not ray tracing — say it before they ask</strong>
+            <p>Ray <em>tracing</em> shoots a ray per pixel in 3D and simulates light bounces. Ray <em>casting</em> here shoots one ray per <em>column</em> through a flat 2D grid and only finds the first wall. Cost: O(columns × cells crossed), real-time on 1992 hardware. The subject says "ray-casting" — using the right word at the table matters.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">From column number to ray direction</h2>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/execution/ray_utils.c — init_ray</span>
+            <pre><code>
+<span class="code-line">camera_x = <span class="code-number">2.0</span> * x / WIN_W - <span class="code-number">1.0</span>;</span>
+<span class="code-line">ray-&gt;dir_x = p-&gt;dir_x + p-&gt;plane_x * camera_x;</span>
+<span class="code-line">ray-&gt;dir_y = p-&gt;dir_y + p-&gt;plane_y * camera_x;</span>
+<span class="code-line">ray-&gt;map_x = (<span class="code-keyword">int</span>)p-&gt;pos_x;</span>
+<span class="code-line">ray-&gt;map_y = (<span class="code-keyword">int</span>)p-&gt;pos_y;</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Remap column x ∈ [0, 1280) onto [−1, +1): left edge → −1, center → 0, right edge → just under +1.</p>
+              <p class="tl">The ray direction is the look direction, nudged sideways along the camera plane by camera_x. At the center the ray <em>is</em> dir; at the edges it's dir ± plane.</p>
+              <p class="tl">Same formula for y. Note: the resulting ray is NOT normalized — and that's fine (module 4 explains why it never needs to be).</p>
+              <p class="tl">Start the grid walk in the cell containing the player — just truncate the position to ints.</p>
+            </div>
+          </div>
+        </div>
+
+        <p>One subtlety worth volunteering at the eval: equal <em>steps in camera_x</em> (not equal angles) is what makes straight walls render straight. An angle-based camera that sweeps the FOV in equal angular steps produces curved walls — that's the fisheye family of bugs before fisheye is even discussed.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Spawning: how N/S/E/W become vectors</h2>
+        <p><code>init_player()</code> centers the player in the cell (<code>x + 0.5, y + 0.5</code>) and sets the two vectors. Remember the map's coordinate system: <strong>y grows downward</strong> (row 0 is the top line of the file), so North is <code>dir = (0, −1)</code>.</p>
+
+        <div class="pattern-cards stagger-children">
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-1)">
+            <div class="pattern-icon" style="background: var(--color-actor-1)">N</div>
+            <h4 class="pattern-title">dir (0, −1)</h4>
+            <p class="pattern-desc">plane (0.66, 0) — points to the player's left-to-right axis, east.</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-2)">
+            <div class="pattern-icon" style="background: var(--color-actor-2)">S</div>
+            <h4 class="pattern-title">dir (0, 1)</h4>
+            <p class="pattern-desc">plane (−0.66, 0) — sign flips so "screen right" stays on the player's right.</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-3)">
+            <div class="pattern-icon" style="background: var(--color-actor-3)">E</div>
+            <h4 class="pattern-title">dir (1, 0)</h4>
+            <p class="pattern-desc">plane (0, 0.66) — perpendicular, consistent handedness.</p>
+          </div>
+          <div class="pattern-card animate-in" style="border-top: 3px solid var(--color-actor-4)">
+            <div class="pattern-icon" style="background: var(--color-actor-4)">W</div>
+            <h4 class="pattern-title">dir (−1, 0)</h4>
+            <p class="pattern-desc">plane (0, −0.66) — flip the dir, flip the plane.</p>
+          </div>
+        </div>
+
+        <p>The rule behind all four: <code>plane = 0.66 · (−dir_y, dir_x)</code>. Get one sign wrong and the world renders mirrored — left arrow turns the view right. That's the classic symptom evaluators know to look for.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Checkpoint: camera math at the table</h2>
+
+        <div class="quiz-container" id="quiz-module3">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Exactly: camera_x = 2·0/1280 − 1 = −1, so rayDir = dir + plane·(−1) = (0,−1) − (0.66,0) = (−0.66, −1). Leftmost column looks ahead-and-to-the-left, as it should for a north-facing player."
+               data-explanation-wrong="Plug into the formula: camera_x = 2·x/WIN_W − 1 = −1 at x = 0. Then rayDir = dir + plane·camera_x with dir = (0,−1), plane = (0.66, 0)...">
+            <h3 class="quiz-question">Player spawned <code>N</code>: dir = (0,−1), plane = (0.66, 0). What's the ray direction for column x = 0?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>(0.66, −1)</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>(−0.66, −1)</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>(0, −1) — column 0 always looks straight ahead</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="Right — tan(FOV/2) = |plane|/|dir|, so FOV = 2·atan(1.0) = 90°. One constant, and only the plane length changes; rays, DDA and projection all keep working untouched."
+               data-explanation-wrong="The FOV comes from the triangle formed by dir and plane: tan(FOV/2) = |plane|/|dir|. Solve for |plane| with FOV = 90°: tan(45°) = 1...">
+            <h3 class="quiz-question">"Make your FOV 90°." What do you change?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Set the plane length to 1.0 — because tan(45°) = 1 and FOV = 2·atan(|plane|/|dir|)</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Cast 1.5× more rays to cover the wider angle</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Multiply camera_x by 1.36 in init_ray</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="Correct. If plane were parallel to dir, dir + plane·camera_x would only stretch or shrink the same direction — every column would cast the SAME ray. Zero FOV, the whole screen shows one wall slice. Perpendicularity is what spreads the rays."
+               data-explanation-wrong="Think about what dir + plane·camera_x produces when plane is parallel to dir: a vector that's always a scalar multiple of dir. Every column then looks in the same direction...">
+            <h3 class="quiz-question">Evaluator: "Why must <code>plane</code> be perpendicular to <code>dir</code>? What if it weren't?"</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>DDA would divide by zero on the first step</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Textures would render upside down on N/S walls</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Parallel plane ⇒ every ray is a multiple of dir ⇒ all columns look the same way — the FOV collapses to zero; perpendicularity is what fans the rays out</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module3')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module3')">Try Again</button>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>

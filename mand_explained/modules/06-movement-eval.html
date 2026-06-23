@@ -1,0 +1,274 @@
+<section class="module" id="module-6" style="background: var(--color-bg)">
+  <div class="module-content">
+    <header class="module-header animate-in">
+      <span class="module-number">06</span>
+      <h1 class="module-title">Movement, Rotation &amp; the Evaluation</h1>
+      <p class="module-subtitle">The last moving parts — then a mock evaluation covering the traps evaluators actually set.</p>
+    </header>
+
+    <div class="module-body">
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Rotation: one matrix, two vectors</h2>
+        <p>Turning left/right rotates <strong>both</strong> <code>dir</code> and <code>plane</code> by the same angle with the standard 2D <span class="term" data-definition="The 2×2 matrix [cos −sin; sin cos] that rotates any vector by angle a around the origin, preserving its length. Apply it to a vector (x, y): x' = x·cos a − y·sin a, y' = x·sin a + y·cos a.">rotation matrix</span>. Rotate only <code>dir</code> and the perpendicularity breaks — the view shears and the FOV drifts every turn.</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/events/rotation.c — rotate_vectors</span>
+            <pre><code>
+<span class="code-line">cos_a = <span class="code-function">cos</span>(angle);</span>
+<span class="code-line">sin_a = <span class="code-function">sin</span>(angle);</span>
+<span class="code-line">old_dir_x = p-&gt;dir_x;</span>
+<span class="code-line">p-&gt;dir_x = old_dir_x * cos_a - p-&gt;dir_y * sin_a;</span>
+<span class="code-line">p-&gt;dir_y = old_dir_x * sin_a + p-&gt;dir_y * cos_a;</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Compute sin/cos once — angle is ±ROT_SPD (0.03 rad ≈ 1.7° per frame).</p>
+              <p class="tl"></p>
+              <p class="tl">Save dir_x BEFORE overwriting it — the second line needs the OLD x. Forgetting this is the classic rotation bug: the view spirals inward and the vectors shrink.</p>
+              <p class="tl">Matrix row 1: x' = x·cos − y·sin.</p>
+              <p class="tl">Matrix row 2: y' = x·sin + y·cos. Lengths preserved exactly, so |dir| stays 1 and |plane| stays 0.66 forever — the FOV never drifts.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-icon">⚠️</div>
+          <div class="callout-content">
+            <strong class="callout-title">Heads-up: the comment above this function has a typo</strong>
+            <p>The doc comment in <code>rotation.c</code> writes the second row as <code>new_y = old_y * sin(a) + old_y * cos(a)</code> — it should be <code>old_x * sin(a) + old_y * cos(a)</code>. The <em>code</em> is correct; the <em>comment</em> isn't. An evaluator reading comments aloud might catch it — better you say it first (or fix it before the defense).</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Movement: vectors again, plus sliding collision</h2>
+        <p>W/S move along <code>±dir</code>; A/D <span class="term" data-definition="Sideways movement without turning — 'strafing'. Implemented by moving along the camera plane vector, which is by construction perpendicular to where you're looking.">strafe</span> along <code>±plane</code> — no extra math needed, the perpendicular vector already exists. The polish is in how collisions are tested:</p>
+
+        <div class="translation-block animate-in">
+          <div class="translation-code">
+            <span class="translation-label">src/events/movement.c — move_along</span>
+            <pre><code>
+<span class="code-line">nx = cub-&gt;player.pos_x + sign * vx * MOVE_SPD;</span>
+<span class="code-line">ny = cub-&gt;player.pos_y + sign * vy * MOVE_SPD;</span>
+<span class="code-line"><span class="code-keyword">if</span> (<span class="code-function">can_move</span>(&amp;cub-&gt;map, nx, cub-&gt;player.pos_y))</span>
+<span class="code-line">    cub-&gt;player.pos_x = nx;</span>
+<span class="code-line"><span class="code-keyword">if</span> (<span class="code-function">can_move</span>(&amp;cub-&gt;map, cub-&gt;player.pos_x, ny))</span>
+<span class="code-line">    cub-&gt;player.pos_y = ny;</span>
+            </code></pre>
+          </div>
+          <div class="translation-english">
+            <span class="translation-label">PLAIN ENGLISH</span>
+            <div class="translation-lines">
+              <p class="tl">Candidate position: current + direction vector scaled by speed (0.05 cells per frame).</p>
+              <p class="tl"></p>
+              <p class="tl">Test the x move ALONE, keeping y fixed. Legal? Apply just the x part.</p>
+              <p class="tl"></p>
+              <p class="tl">Then test the y move alone. The two axes are independent—</p>
+              <p class="tl">—which is what makes you SLIDE along a wall you walk into diagonally, instead of sticking to it. One blocked axis doesn't veto the other.</p>
+            </div>
+          </div>
+        </div>
+
+        <p><code>can_move()</code> itself doesn't test a point — it tests a <strong>0.2-radius bounding box</strong>: all four corners of a small square around the candidate position must land in non-wall cells. That keeps an air gap from walls (no texture z-fighting against your face) and stops corner-clipping diagonally between two walls.</p>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Lifecycle, memory, and what counts as "extra"</h2>
+
+        <div class="step-cards">
+          <div class="step-card">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <strong>Two exit doors, one cleanup</strong>
+              <p>ESC and the window's ✕ both land in <code>close_hook</code> → <code>mlx_loop_end</code> → <code>cub_destroy</code> → <code>exit(0)</code>. Error paths take <code>exit_error</code> → same <code>cub_destroy</code> → <code>exit(1)</code>. One free-everything function, called from every door.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <strong>Destroy order matters</strong>
+              <p><code>cub_destroy</code>: textures → screen image → window → display → grid → texture path strings. MLX resources before <code>mlx_destroy_display</code>, and every step guarded so the function is safe whether you crashed during parsing or after an hour of play.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <strong>Know your mandatory vs. polish</strong>
+              <p>Distance fog (<code>FOG_K</code>), darker N/S faces (<code>SIDE_SHADE</code>), floor/ceiling gradients, head-bob (<code>horizon</code>, <code>bob_t</code>) and the crosshair are <em>extras layered onto the mandatory part</em>. Be ready to point at them, say "this is polish, here's the line where the mandatory behavior would be <code>WIN_H / 2</code> and a flat color", and explain them anyway.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Match the symptom to the broken part</h2>
+        <p>Debugging intuition is what evaluators probe with "what would happen if…". Drag each symptom onto its cause.</p>
+
+        <div class="dnd-container" id="dnd-module6">
+          <div class="dnd-chips">
+            <div class="dnd-chip" draggable="true" data-answer="fisheye">Walls bulge like a barrel</div>
+            <div class="dnd-chip" draggable="true" data-answer="mirror">Wall textures read mirror-imaged</div>
+            <div class="dnd-chip" draggable="true" data-answer="spiral">View shrinks/spirals while turning</div>
+            <div class="dnd-chip" draggable="true" data-answer="stick">Player sticks to walls on diagonal contact</div>
+          </div>
+          <div class="dnd-zones">
+            <div class="dnd-zone" data-correct="fisheye">
+              <p class="dnd-zone-label">Used Euclidean ray length instead of <code>side_dist − delta</code></p>
+              <div class="dnd-zone-target">Drop here</div>
+            </div>
+            <div class="dnd-zone" data-correct="mirror">
+              <p class="dnd-zone-label">Removed the <code>tex_x = (width − 1) − tex_x</code> flip in <code>calc_tex_x</code></p>
+              <div class="dnd-zone-target">Drop here</div>
+            </div>
+            <div class="dnd-zone" data-correct="spiral">
+              <p class="dnd-zone-label">Forgot to save <code>old_dir_x</code> before overwriting in <code>rotate_vectors</code></p>
+              <div class="dnd-zone-target">Drop here</div>
+            </div>
+            <div class="dnd-zone" data-correct="stick">
+              <p class="dnd-zone-label">Tested the full (x, y) move at once instead of per-axis in <code>move_along</code></p>
+              <div class="dnd-zone-target">Drop here</div>
+            </div>
+          </div>
+          <div class="dnd-controls">
+            <button class="btn" onclick="checkDnD('dnd-module6')">Check Matches</button>
+            <button class="btn" onclick="resetDnD('dnd-module6')">Reset</button>
+          </div>
+          <div class="dnd-feedback"></div>
+        </div>
+      </section>
+
+      <section class="screen animate-in">
+        <h2 class="screen-heading">Mock evaluation — final round</h2>
+        <p>Five questions, the kind that decide between "passed" and "outstanding".</p>
+
+        <div class="quiz-container" id="quiz-module6">
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Exactly — and this is worth saying unprompted: X11 key auto-repeat sends press/release bursts, so moving inside key_press gives stuttering speed tied to the OS repeat rate, and two keys can't be held at once. State array + per-frame application solves all of it."
+               data-explanation-wrong="Think about holding W and D together, and about the OS keyboard auto-repeat rate. Events are bursty and serialized; frames are regular. The keys[] array converts one into the other.">
+            <h3 class="quiz-question">"Why a <code>keys[]</code> array? Why not move the player directly in the KeyPress hook?"</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Because MLX forbids changing game state inside hooks</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Events are bursty (OS auto-repeat) and one-at-a-time; recording held state and applying it once per frame gives smooth speed and simultaneous W+D movement</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>It's faster — array writes are cheaper than position updates</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="Correct on both counts: side 0 ⇒ the perpendicular distance comes from the x bookkeeping, and step_x tells which face. The full answer chains DDA → perp_dist → texture in one breath: side and step are the only outputs the renderer needs besides the distance."
+               data-explanation-wrong="side = 0 means the final crossing was a vertical grid line. perp_dist must then be side_dist_x − delta_x, and the face is West or East depending on step_x's sign.">
+            <h3 class="quiz-question">A ray finishes with <code>side = 0</code>, <code>step_x = +1</code>. Which formula gives perp_dist, and which texture is drawn?</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span><code>side_dist_y − delta_y</code>; TEX_NO</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span><code>side_dist_x − delta_x</code>; TEX_WE</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span><code>side_dist_x − delta_x</code>; TEX_EA</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-a"
+               data-explanation-right="Right — the unnormalized ray is the point. delta = |1/dir| measures distance in units of |rayDir|, every column's t is in its own consistent unit, and side_dist − delta lands directly on the perpendicular distance. Normalizing would force you to compute the fisheye correction explicitly."
+               data-explanation-wrong="It's intentional and load-bearing. Ask: what units does delta = |1/dir_x| measure distance in? And what does the projection proof in module 5 rely on?">
+            <h3 class="quiz-question">"Your ray direction <code>dir + plane·camera_x</code> isn't normalized. Bug or feature?"</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Feature: all DDA distances are measured in units of the ray's own length, which makes <code>side_dist − delta</code> equal the perpendicular distance directly — normalization would reintroduce fisheye math</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Bug, but invisible: the error is under one pixel per column</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Feature: skipping sqrt makes it faster, accuracy is sacrificed deliberately</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-b"
+               data-explanation-right="Exactly. 0.2 cells of padding around the player: corner_blocked is called for the 4 corners of that square. A pure point test lets the camera touch the wall plane (perp_dist → 0, giant stripes) and allows slipping through corner gaps."
+               data-explanation-wrong="COLLISION = 0.2 in cub3d.h, used in can_move: the four tested points are (x ± 0.2, y ± 0.2). It's a bounding box around the player, not a single point.">
+            <h3 class="quiz-question">"What does the COLLISION 0.2 constant do, exactly?"</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Minimum perp_dist clamp so the projection never divides by zero</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Half-size of the player's collision box: all 4 corners of a 0.4×0.4 square must be in walkable cells, keeping an air gap and preventing corner clipping</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Movement speed multiplier applied when strafing</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <div class="quiz-question-block"
+               data-correct="option-c"
+               data-explanation-right="That's the complete chain, compressed. If you can deliver this answer smoothly — file to pixels in under a minute — the evaluation is yours. Go run ./cub3D and watch the code in your head while you walk around."
+               data-explanation-wrong="Build the chain in order: parse/validate once at startup; then per frame: keys → move/rotate vectors → per column: ray from dir + plane·camera_x → DDA to a wall → perp_dist → stripe height → texture column → image → one blit.">
+            <h3 class="quiz-question">Final boss — pick the correct one-breath summary of the whole program:</h3>
+            <div class="quiz-options">
+              <button class="quiz-option" data-value="option-a" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Parse map → for each frame, rotate the map around the player → draw visible cells as 3D cubes with MLX → repeat</span>
+              </button>
+              <button class="quiz-option" data-value="option-b" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Parse map → trace one ray per pixel with reflections → shade by light distance → push pixels per ray</span>
+              </button>
+              <button class="quiz-option" data-value="option-c" onclick="selectOption(this)">
+                <div class="quiz-option-radio"></div>
+                <span>Parse &amp; validate once → each frame: apply held keys to pos/dir/plane → for each of 1280 columns, ray = dir + plane·camera_x, DDA to the first wall, perp_dist = side_dist − delta → stripe height WIN_H/perp_dist, textured via wall_x → blit the finished image once</span>
+              </button>
+            </div>
+            <div class="quiz-feedback"></div>
+          </div>
+
+          <button class="quiz-check-btn" onclick="checkQuiz('quiz-module6')">Check Answers</button>
+          <button class="quiz-reset-btn" onclick="resetQuiz('quiz-module6')">Try Again</button>
+        </div>
+
+        <div class="callout callout-accent">
+          <div class="callout-icon">🎓</div>
+          <div class="callout-content">
+            <strong class="callout-title">You're ready when…</strong>
+            <p>…you can answer "how did you do X?" by naming the file, the function, the formula, and the <em>reason</em> — in that order. Your Python notebooks in <code>Cub3d_learn/math/</code> (camera &amp; ray, delta/side_dist, DDA, fisheye, texture coords) mirror modules 3–5 here: re-derive each one on paper once before the defense.</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</section>
