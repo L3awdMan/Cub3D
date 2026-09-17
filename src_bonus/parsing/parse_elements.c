@@ -50,7 +50,7 @@ int	identify_element(char *line)
 }
 
 /**
- * @brief SECTION 4 (bonus): parses the custom `FLOOR <n>` directive into
+ * @brief parses the custom `FLOOR <n>` directive into
  * cub->floor (1..), selecting which per-floor enemy art loads. The subject
  * (p.14) allows extending the scene format for the bonus. A number below 1 is
  * a misconfiguration and errors out like any other bad element.

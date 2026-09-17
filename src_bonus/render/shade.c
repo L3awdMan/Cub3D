@@ -10,14 +10,14 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 3 (src/render/shade.c): mandatory polish helpers split out of
+/* mandatory polish helpers split out of
  * render.c to keep both files Norm-compliant (≤5 functions per file).
  * Contains: per-channel color shader, HUD crosshair, head-bob horizon. */
 
 #include "cub3d_bonus.h"
 
 /**
- * @brief SECTION 3 (src/render/shade.c): per-channel RGB multiply with
+ * @brief per-channel RGB multiply with
  * saturation clamp. Used by wall shading (fog + side darkening) and the
  * floor/ceiling gradient. Channels clamp to [0,255] so a k > 1 (e.g. flash
  * effect) never overflows into the next byte.
@@ -47,7 +47,7 @@ unsigned int	shade_rgb(unsigned int color, double k)
 }
 
 /**
- * @brief SECTION 3 (src/render/shade.c): 9-pixel white crosshair drawn at
+ * @brief 9-pixel white crosshair drawn at
  * the geometric center of the buffer. Called from render_frame AFTER the
  * raycast pass so wall stripes never overwrite the cross. Pure put_px,
  * no MLX text calls (whitelist-safe).
@@ -70,7 +70,7 @@ void	draw_crosshair(t_cub *cub)
 }
 
 /**
- * @brief SECTION 3 (src/render/shade.c): head-bob horizon update.
+ * @brief head-bob horizon update.
  * bob_t advances only while a WASD key is held so the view sits still when
  * the player stops. Result lands in cub->horizon; consumed by
  * calc_draw_params (wall stripe re-centering) and draw_ceiling/draw_floor

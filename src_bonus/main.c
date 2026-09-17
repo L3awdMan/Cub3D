@@ -78,7 +78,7 @@ static void	init_game(t_cub *cub, char *map_path)
  * @brief Entry point
  * @return 0 on clean exit and 1 on argument error
  *
- * SECTION 4 (src_bonus/main.c): the minimap starts enabled (KEY_M toggles);
+ * the minimap starts enabled (KEY_M toggles);
  * init_doors allocates the door grid and init_sprites scans '2' tiles into
  * sprite entities — both run after parse_file, once map dimensions are set.
  */

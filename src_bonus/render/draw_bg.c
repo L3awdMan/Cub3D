@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/render/draw_bg.c): textured floor + ceiling via
+/* textured floor + ceiling via
  * per-pixel floor casting. For each background pixel we recover the world
  * point it covers from the row's perspective distance, sample the floor or
  * ceiling XPM at that world (x, y), and shade by depth (FOG_K). The mandatory
@@ -20,7 +20,7 @@
 #include "cub3d_bonus.h"
 
 /**
- * @brief SECTION 4 (src_bonus/render/draw_bg.c): samples the floor or ceiling
+ * @brief samples the floor or ceiling
  * texture for screen pixel (x, y). Reconstructs the row's perspective
  * distance from cub->horizon, projects (x, y) into world space along this
  * column's ray, and returns the texel at the wrapped world coords with depth

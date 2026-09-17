@@ -60,7 +60,7 @@ void	free_tex_paths(t_map *map)
 }
 
 /**
- * @brief SECTION 4 (src_bonus/cleanup.c): frees bonus-only heap data — the
+ * @brief frees bonus-only heap data — the
  * door-state grid, the sprite array, the in-flight get_next_line buffer
  * (mid-parse exit_error path) and the GNL static fd_list (drained via the
  * magic fd -42 sentinel exposed by libft's get_next_line).

@@ -54,7 +54,7 @@ static void	load_single_tex(t_cub *cub, int idx)
 }
 
 /**
- * @brief SECTION 4 (src_bonus/render/texture.c): loads one XPM file into the
+ * @brief loads one XPM file into the
  * given t_img. Used for the bonus door / floor / ceiling textures, whose
  * paths are fixed (DOOR_FACE_PATH / FLOOR_PATH / CEIL_PATH) rather than
  * read from the .cub file.

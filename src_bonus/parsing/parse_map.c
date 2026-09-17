@@ -17,7 +17,7 @@
  *
  * FIX 3a (src/parsing/parse_map.c): TAB and CR are accepted alongside space
  * (CRLF / tab-indented maps); normalize_row() rewrites them before storage.
- * SECTION 4 (src_bonus): 'D' (door) and sprite spawns are also valid map
+ * 'D' (door) and sprite spawns are also valid map
  * characters in the bonus build.
  */
 static void	check_map_chars(t_cub *cub, char *line)

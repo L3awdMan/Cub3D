@@ -78,9 +78,9 @@ static void	render_frame(t_cub *cub)
 /**
  * @brief Advances one frame of gameplay simulation.
  *
- * SECTION 4: update_doors advances every door's slide progress at
+ * update_doors advances every door's slide progress at
  * DOOR_SPEED per millisecond so the animation runs in wall-clock time
- * regardless of frame rate. SECTION 3: update_horizon refreshes the
+ * regardless of frame rate. update_horizon refreshes the
  * head-bob so this frame's bob matches this frame's movement state.
  */
 static void	update_world(t_cub *cub)
@@ -101,7 +101,7 @@ static void	update_world(t_cub *cub)
  * @brief Main loop hook
  * @return 0 to keep MLX loop running
  *
- * SECTION 4: the world is only simulated while GS_PLAYING — on the dead/win
+ * the world is only simulated while GS_PLAYING — on the dead/win
  * screen the scene freezes and only update_endgame (input) + render run.
  */
 int	loop_hook(void *param)

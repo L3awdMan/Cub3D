@@ -15,7 +15,7 @@
 /**
  * @brief Check if a character is a walkable cell (0 or spawn)
  *
- * SECTION 4 (src_bonus/parsing/validate_map.c): sprite spawns count
+ * sprite spawns count
  * as walkable floor for the enclosure check — init_sprites() rewrites them
  * to '0' after validation, so the rest of the engine never sees it.
  */
