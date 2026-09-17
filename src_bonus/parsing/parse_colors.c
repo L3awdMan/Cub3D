@@ -96,6 +96,7 @@ void	parse_color(t_cub *cub, char *line, int is_ceiling)
 	int	rgb[3];
 	int	bit;
 
+  ft_bzero(rgb, 0);
 	bit = 4 + is_ceiling;
 	if (cub->map.parsed_flags & (1 << bit))
 		exit_error(cub, "Duplicate color identifier");
