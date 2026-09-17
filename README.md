@@ -5,6 +5,12 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/42-School_Project-000000?style=flat-square&logo=42&logoColor=white" alt="42"/>
+  <img src="https://img.shields.io/badge/Language-C-00599C?style=flat-square&logo=c&logoColor=white" alt="C"/>
+  <img src="https://img.shields.io/badge/Graphics-MiniLibX-purple?style=flat-square" alt="MiniLibX"/>
+</p>
+
+<p align="center">
   <img src="./img/Bocal_Blaster_Banner.png" alt="Bocal Blaster Banner">
 </p>
 
@@ -14,7 +20,7 @@ cub3D is a textured raycasting engine inspired by Wolfenstein 3D, written in C w
 
 The bonus binary `cub3D_bonus` adds an entire game on top of the engine: a [Blake Stone: Aliens of Gold](https://en.wikipedia.org/wiki/Blake_Stone:_Aliens_of_Gold) parody campaign with 3 floors, enemies, weapons, sliding doors, sprites, a circular minimap, cutscenes, mission briefings, a HUD, endgame screens and mouse-look. See [Chapter 20](#chapter-20-bonus) for the full feature list and the story manual.
 
-# The Blake Stone parody
+# The Game Story
 
 <p align="center">
 	<a href="./bocal_blaster.pdf">
@@ -31,8 +37,8 @@ The bonus binary `cub3D_bonus` adds an entire game on top of the engine: a [Blak
 The bonus binary is the full game and the recommended way to try the project:
 
 ```bash
-git clone https://github.com/L3awdMan/Cub3D_School.git
-cd Cub3D_School
+git clone https://github.com/L3awdMan/Cub3D.git
+cd Cub3D
 make bonus
 ./cub3D_bonus maps/bonus/blake_stone_floor1.cub
 ```
@@ -216,14 +222,20 @@ done
 * [id Software - Wolfenstein 3D source](https://github.com/id-Software/wolf3d)
 * [Blake Stone: Aliens of Gold](https://en.wikipedia.org/wiki/Blake_Stone:_Aliens_of_Gold)
 
-> [!IMPORTANT]
-> The explanations in this repository are not intended to encourage cheating or any behavior that goes against 42's rules. Their purpose is to support the peer-to-peer learning system, which is also one of the core ideas behind our game. Bader and I do not encourage, support, or take responsibility for any form of cheating related to this repository.
 
 ---
 
 <p align="center">
   <img src="./img/Cub3D.png" width="300" alt="Mandatory walkthrough">
 </p>
+
+> [!CAUTION]
+> The explanations in this repository are not intended to encourage cheating or any behavior that goes against 42's rules. Their purpose is to support the peer-to-peer learning system, which is also one of the core ideas behind our game. Bader and I do not encourage, support, or take responsibility for any form of cheating related to this repository.
+
+> [!IMPORTANT]
+> If you have read our explanations carefully, you will understand that they are not enough on their own .. you still need to do your own research.
+
+
 
 # Complete mandatory walkthrough
 
