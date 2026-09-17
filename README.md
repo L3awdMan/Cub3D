@@ -4,20 +4,47 @@
   <img src="./img/cub3D_badge.png" width="150" alt="Cub3D Badge With Bonus">
 </p>
 
+<p align="center">
+  <img src="./img/Bocal_Blaster_Banner.png" alt="Bocal Blaster Banner">
+</p>
+
 # Description
 
 cub3D is a textured raycasting engine inspired by Wolfenstein 3D, written in C with MiniLibX. The mandatory binary `cub3D` reads a `.cub` scene file, opens a  window, and renders a 1st person view using a DDA raycaster.
 
 The bonus binary `cub3D_bonus` adds an entire game on top of the engine: a [Blake Stone: Aliens of Gold](https://en.wikipedia.org/wiki/Blake_Stone:_Aliens_of_Gold) parody campaign with 3 floors, enemies, weapons, sliding doors, sprites, a circular minimap, cutscenes, mission briefings, a HUD, endgame screens and mouse-look. See [Chapter 20](#chapter-20-bonus) for the full feature list and the story manual.
 
+# The Blake Stone parody
+
+<p align="center">
+	<a href="./bocal_blaster.pdf">
+	<img src="./img/comic.png" height="600" alt="Peer to feer">
+	</a>
+</p>
+
+<h3 align="center">
+	<a href="./bocal_blaster.pdf">Available as a .pdf »</a>
+</h3>
+
+# Quick start (bonus)
+
+The bonus binary is the full game and the recommended way to try the project:
+
+```bash
+git clone https://github.com/L3awdMan/Cub3D_School.git
+cd Cub3D_School
+make bonus
+./cub3D_bonus maps/bonus/blake_stone_floor1.cub
+```
+
+Other campaign maps live under `maps/bonus/`: `blake_stone_floor2.cub`, `blake_stone_floor3.cub`, `demo.cub`.
+
 # Instructions
 
 ## Build
 
-> [!CAUTION]
-> MiniLibX is not bundled.\
-> Before `make`, place an X11 MiniLibX build at `./mlx/`\
-> (for example `git clone https://github.com/42Paris/minilibx-linux.git mlx`).
+> [!NOTE]
+> MiniLibX is vendored under `./mlx/` and builds automatically as part of `make` — no manual setup needed.
 
 ```
     make            # builds the mandatory binary ./cub3D
@@ -33,8 +60,8 @@ the mandatory tree and vice versa.
 ## Run
 
 ```
-    ./cub3D       maps/good/subject.cub
-    ./cub3D_bonus maps/bonus/blake_stone_floor1.cub
+    ./cub3D_bonus maps/bonus/blake_stone_floor1.cub  # bonus: the full game
+    ./cub3D       maps/good/subject.cub              # mandatory: raycaster only
 ```
 
 ## Testing
@@ -189,11 +216,8 @@ done
 * [id Software - Wolfenstein 3D source](https://github.com/id-Software/wolf3d)
 * [Blake Stone: Aliens of Gold](https://en.wikipedia.org/wiki/Blake_Stone:_Aliens_of_Gold)
 
-# AI Usage
-
-AI assistants were used for code review, debugging help and documentation
-drafting.\
-Every accepted line was read, tested and committed by the authors.
+> [!IMPORTANT]
+> The explanations in this repository are not intended to encourage cheating or any behavior that goes against 42's rules. Their purpose is to support the peer-to-peer learning system, which is also one of the core ideas behind our game. Bader and I do not encourage, support, or take responsibility for any form of cheating related to this repository.
 
 ---
 
@@ -1577,18 +1601,6 @@ extras:
   * `8` weapon 3 pickup
   * `9` weapon 4 pickup
   * `P` weapon 5 pickup
-
-## The Blake Stone parody
-
-<p align="center">
-	<a href="./bocal_blaster.pdf">
-	<img src="./img/comic.png" height="600" alt="Peer to feer">
-	</a>
-</p>
-
-<h3 align="center">
-	<a href="./bocal_blaster.pdf">Available as a .pdf »</a>
-</h3>
 
 <hr>
 <p align="center">
