@@ -16,9 +16,9 @@
 
 # Description
 
-cub3D is a textured raycasting engine inspired by Wolfenstein 3D, written in C with MiniLibX. The mandatory binary `cub3D` reads a `.cub` scene file, opens a  window, and renders a 1st person view using a DDA raycaster.
+cub3D is a textured raycasting engine inspired by [Wolfenstein 3D](https://en.wikipedia.org/wiki/Wolfenstein_3D) , written in C with MiniLibX. The mandatory binary `cub3D` reads a `.cub` scene file, opens a  window, and renders a 1st person view using a DDA raycaster.
 
-The bonus binary `cub3D_bonus` adds an entire game on top of the engine: a [Blake Stone: Aliens of Gold](https://en.wikipedia.org/wiki/Blake_Stone:_Aliens_of_Gold) parody campaign with 3 floors, enemies, weapons, sliding doors, sprites, a circular minimap, cutscenes, mission briefings, a HUD, endgame screens and mouse-look. See [Chapter 20](#chapter-20-bonus) for the full feature list and the story manual.
+The bonus binary `cub3D_bonus` adds an entire game with 3 floors, enemies, weapons, sliding doors, sprites, a circular minimap, cutscenes, mission briefings, a HUD, endgame screens and mouse-look. See [Chapter 20](#chapter-20-bonus) for the full feature list and the story manual.
 
 # The Game Story
 
