@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/theme_bonus.c): per-floor texture theme. Only the
+/* per-floor texture theme. Only the
  * NO/SO/WE/EA wall faces are read from the .cub; the door, floor, ceiling,
  * boss-ceiling and accent-wall (map chars 4/5/6) textures are otherwise fixed
  * global paths. floor_theme() returns the set for the current floor so a floor

@@ -21,7 +21,7 @@
  * new_y = old_y * sin(a) + old_y * cos(a)
  * @note Both dir and plane are rotated together to keep the perpendicularity
  *
- * SECTION 4 (src_bonus/events/rotation.c): de-static'd so the mouse-look
+ * de-static'd so the mouse-look
  * module (src_bonus/bonus/mouse_bonus.c) can reuse the exact same rotation
  * math — no duplicated trig.
  */

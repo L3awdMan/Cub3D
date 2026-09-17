@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/menu_frame_bonus.c): menu screen selection + the
+/* menu screen selection + the
  * Start-Mission fade. menu_frame() maps the current GS_* state to the image to
  * blit; on GS_FADEOUT it indexes the clear->black sequence by elapsed time.
  * update_menu() drives that timer and, on the black frame, starts the floor-1

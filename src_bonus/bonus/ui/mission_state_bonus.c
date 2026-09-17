@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/mission_state_bonus.c): mission UI state flow.
+/* mission UI state flow.
  * Mission briefings are scheduled after floor entry, shown after a short
  * playable delay, then dismissed by Enter/Space back to gameplay. */
 

@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/floor_switch_bonus.c): floor progression. On a
+/* floor progression. On a
  * floor-2 win, advance_floor() starts the ending cutscene; the cutscene then
  * calls advance_floor_after_cutscene() to tear down/reload floor 3. The floor-3
  * ending is driven from reward_popup_bonus.c (money bag -> CUT_END_F3 ->

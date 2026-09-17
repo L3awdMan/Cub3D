@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/doors_bonus.c): bonus feature #3 — animated
+/* bonus feature #3 — animated
  * doors. Each map cell holding 'D' has a t_door slot: progress runs
  * 0.0 (closed) → 1.0 (fully retracted) and target is the value progress
  * is animating toward. update_doors() advances every door by

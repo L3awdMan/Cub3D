@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/enemy_move_bonus.c): slow chase movement.
+/* slow chase movement.
  * move_enemy() is called once per frame from enemy_tick(): an alive non-static
  * enemy that sees the player (los_clear) and sits within CHASE_RANGE but
  * beyond ENEMY_STOP_DIST walks toward the player at ENEMY_SPD. Collision

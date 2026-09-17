@@ -18,7 +18,7 @@
  * can_move() tested only the new cell center, so the player rubbed flush
  * against walls and could clip diagonally through corners.
  *
- * SECTION 4 (src_bonus): a 'D' cell also blocks until door_is_open().
+ * a 'D' cell also blocks until door_is_open().
  */
 static int	corner_blocked(t_cub *cub, double x, double y)
 {

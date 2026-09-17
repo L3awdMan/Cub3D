@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/minimap_draw_bonus.c): circular-mask drawing
+/* circular-mask drawing
  * primitives for the minimap. Every put_px in the minimap path routes
  * through mm_put_circ, which Euclidean-distance-tests the target pixel
  * against the disc center before writing. */

@@ -21,19 +21,19 @@
 # define KEY_RIGHT	65363
 # define KEY_ESC	65307
 
-/* SECTION 4 (include/keys_bonus.h): extra keys for bonus features.
+/* extra keys for bonus features.
  *   KEY_E - interact / toggle the door the player faces.
  *   KEY_M - toggle the minimap on and off. */
 # define KEY_E		101
 # define KEY_M		109
 # define KEY_P		112
-/* SECTION 4 (include/keys_bonus.h): KEY_SPACE fires the current weapon
+/* KEY_SPACE fires the current weapon
  * (drains the charge bar while held). Left-click fires too (button hook). */
 # define KEY_SPACE	32
-/* SECTION 4 (include/keys_bonus.h): KEY_ENTER (X11 Return) confirms the
+/* KEY_ENTER (X11 Return) confirms the
  * dead/win screen — respawn the floor or advance to the next one. */
 # define KEY_ENTER	65293
-/* SECTION 4 (include/keys_bonus.h): front-end menu navigation. Up/Down move the
+/* front-end menu navigation. Up/Down move the
  * highlight (W/S work too), KEY_BACKSPACE steps back to the main menu. */
 # define KEY_UP			65362
 # define KEY_DOWN		65364

@@ -43,7 +43,7 @@
 
 # define CASTING	1
 
-/* SECTION 3 (mandatory polish, include/cub3d.h) — depth shading + head bob.
+/* depth shading + head bob.
  * All whitelist-safe: only <math.h> needed at runtime.
  *   FOG_K       distance (cells) at which a wall reaches full brightness;
  *               closer walls are bright, far walls fade toward black.
@@ -58,7 +58,7 @@
 # define BOB_AMP	5
 # define BOB_STEP	0.18
 
-/* SECTION 4 (bonus, include/cub3d_bonus.h) — tunables.
+/* tunables.
  *   MOUSE_SENS  radians of view rotation per pixel of horizontal mouse
  *               travel. The motion hook tracks the raw pointer delta
  *               (current_x - last_x) without recentering, so this scales
@@ -66,7 +66,7 @@
  *               that matches FPS feel without DPI-amplified over-rotation. */
 # define MOUSE_SENS	0.002
 
-/* SECTION 4 (bonus) — minimap. A player-centered top-down patch drawn over
+/* minimap. A player-centered top-down patch drawn over
  * the 3D view after the raycast pass.
  *   MM_CELL    pixels per map cell.
  *   MM_RADIUS  cells visible in every direction from the player.
@@ -86,14 +86,14 @@
 # define MM_ENEMY	0x24D67E
 # define MM_BOSS	0xFFCC33
 # define MM_BOSS_RING	0x8C1020
-/* SECTION 4 (bonus) — circular minimap mask. MM_R is the disc radius in
+/* circular minimap mask. MM_R is the disc radius in
  * pixels (half the bounding box). MM_RING / MM_RING_THICK draw a white
  * outline so the disc edge reads cleanly against the 3D scene. */
 # define MM_R			54
 # define MM_RING		0xFFFFFF
 # define MM_RING_THICK	3
 
-/* SECTION 4 (bonus) — doors. Tile 'D' is a door cell. A door is a pure
+/* doors. Tile 'D' is a door cell. A door is a pure
  * boolean: open (raycaster walks straight through) or closed (rendered as
  * a full wall slice with cub->door_tex). Press KEY_E within DOOR_REACH
  * cells to toggle. A close attempt while the player stands on the door
@@ -105,14 +105,14 @@
 # define DOOR_FACE_PATH	"./textures/blake_stone_xpm/walls/wall_r15_c01.xpm"
 # define DOOR_OPEN_FACE_PATH \
 	"./textures/blake_stone_xpm/walls/wall_r15_c01.xpm"
-/* SECTION 4 (bonus) — door slide animation. progress runs 0.0 (fully
+/* door slide animation. progress runs 0.0 (fully
  * closed) → 1.0 (fully retracted). DOOR_SPEED is the per-ms rate, so
  * 0.0018 ≈ 555 ms for a full open/close. DOOR_PASSABLE is the progress
  * threshold above which collision/movement treats the cell as walkable. */
 # define DOOR_SPEED		0.0018
 # define DOOR_PASSABLE	0.90
 
-/* SECTION 4 (bonus) — animated billboard sprites. Map tiles '2' and '3' spawn
+/* animated billboard sprites. Map tiles '2' and '3' spawn
  * the floor-1 enemy and boss respectively. Each type has its own XPM frame
  * sequence cycling every ANIM_MS milliseconds (wall clock, gettimeofday-based).
  * Tiles are rewritten to '0' after parsing so the raycaster/movement never see
@@ -172,7 +172,7 @@
 # define SHOT_RANGE		15.0
 # define SHOT_AIM		60
 # define PICKUP_SCALE	0.40
-/* SECTION 4 (bonus) — world reward pickups. A killed enemy drops a meat
+/* world reward pickups. A killed enemy drops a meat
  * (SP_MEAT) and a dead boss drops a money bag (SP_MONEY) as grounded billboard
  * sprites. Walking within REWARD_PICK_DIST cells collects it: meat restores
  * MEAT_HEAL hp + a green pickup vignette, money is cosmetic + a gold vignette.
@@ -187,7 +187,7 @@
 # define FLASH_GREEN	0x40C878
 # define FLASH_GOLD		0xE8C34A
 
-/* SECTION 4 (bonus) — enemy combat + per-floor art.
+/* enemy combat + per-floor art.
  *   ENEMY_ROLES   number of alive enemy roles (0..4). death_type(t)=9+t and
  *                 firing_type(t)=14+t map a role to its corpse / attack set.
  *   BOSS_HP       shots the SP_FLUID boss soaks; every other role dies in one.
@@ -216,14 +216,14 @@
 # define HURT_FADE_MS	600
 # define HURT_MAX_A		0.6
 
-/* SECTION 4 (bonus) — "enemies remaining" lives counter. 24 panel frames
+/* "enemies remaining" lives counter. 24 panel frames
  * (lives_0..lives_23) render inside the black slot of the floor HUD. lives
  * starts at the floor's killable enemy count (capped LIVES_MAX) and ticks
  * down by one on each kill. */
 # define LIVES_MAX		23
 # define LIVES_DIR		"./textures/blake_stone_xpm/sprites/lives_counter/"
 
-/* SECTION 4 (bonus) — end-game state machine. game_state is GS_PLAYING until
+/* end-game state machine. game_state is GS_PLAYING until
  * the player dies (GS_DEAD), beats the boss and grabs its money bag (GS_WIN),
  * or a full-screen mission cutscene is playing (GS_CUTSCENE). The dead UI
  * plays DEAD_FRAMES blur->clear frames at DEAD_ANIM_MS each, then Enter/Space
@@ -233,7 +233,7 @@
 # define GS_DEAD		1
 # define GS_WIN			2
 # define GS_CUTSCENE	3
-/* SECTION 4 (bonus) — front-end UI flow. The game opens on GS_INTRO; Space or
+/* front-end UI flow. The game opens on GS_INTRO; Space or
  * Enter steps to GS_MENU (3 options), which branches to GS_SETTINGS /
  * GS_DIFFICULTY or starts the run via GS_FADEOUT (intro clear->blur->black, then
  * the floor-1 cutscene). MENU_OPTS menu rows; FADE_FRAMES blur frames at
@@ -262,7 +262,7 @@
 # define GAMEOVER_QUIT	1
 # define OPAQUE_KEY		0x01000000u
 # define ENDGAME_DIR	"./textures/blake_stone_xpm/sprites/gameover_win_ui/"
-/* SECTION 4 (bonus) — full-screen cutscenes. PNG originals are converted to
+/* full-screen cutscenes. PNG originals are converted to
  * gapless XPM sequences under CUT_DIR and played in numeric order. */
 # define CUT_DIR		"./textures/blake_stone_xpm/cutscenes/"
 # define CUT_BEGIN_F1	1
@@ -275,7 +275,7 @@
 # define CUT_ACT_NEXT	2
 # define CUT_ACT_FINAL	3
 
-/* SECTION 4 (bonus) — enemy projectiles. When an enemy fires it spawns an
+/* enemy projectiles. When an enemy fires it spawns an
  * animated shot (per-role proj art) that travels toward the player and deals
  * ATTACK_DMG on impact (no more instant hitscan from the AI).
  * The shot art is per (floor, role): proj_type(role) = SP_POD_PROJ + role names
@@ -290,7 +290,7 @@
 # define PROJ_HIT_DIST	0.4
 # define PROJ_SCALE		0.5
 
-/* SECTION 4 (bonus) — textured floor / ceiling (Blake Stone tiles).
+/* textured floor / ceiling (Blake Stone tiles).
  * The mandatory F/C lines in the .cub file still parse to RGB (kept as a
  * fallback color), but the bonus renderer samples these XPMs instead via
  * per-pixel floor casting. 64x64 power-of-two textures so the wrap mask
@@ -305,7 +305,7 @@
 # define WALL_ALT1_PATH	"./textures/blake_stone_xpm/walls/wall_r10_c06.xpm"
 # define WALL_ALT2_PATH	"./textures/blake_stone_xpm/walls/wall_r07_c02.xpm"
 
-/* SECTION 4 (bonus) — weapon HUD. Each weapon has five player-view XPM frames
+/* weapon HUD. Each weapon has five player-view XPM frames
  * (frame 0 = idle, later frames = firing/muzzle-flash sequence). Firing
  * (KEY_SPACE or left-click) plays the sequence, then returns to idle.
  *   WPN_COUNT     number of weapons (index 0 = starting pistol).
@@ -387,10 +387,10 @@ typedef struct s_ray
 	int		step_x;
 	int		step_y;
 	int		side;
-	/* SECTION 4: 1 if the DDA stopped on a closed/animating door cell;
+	/* 1 if the DDA stopped on a closed/animating door cell;
 	 * draw_wall_stripe routes those columns to the door drawer. */
 	int		door;
-	/* SECTION 4: fractional hit position [0..1] across the door face on
+	/* fractional hit position [0..1] across the door face on
 	 * the cell where the DDA stopped. Used by the door drawer to warp
 	 * wall_x so the panel texture compresses to the unopened side as the
 	 * door slides open. Undefined when ray->door is 0. */
@@ -398,7 +398,7 @@ typedef struct s_ray
 }	t_ray;
 
 /**
- * @brief SECTION 4 (include/cub3d_bonus.h): per-cell door state.
+ * @brief per-cell door state.
  *   progress  0.0 = fully closed, 1.0 = fully retracted. Animated each
  *             frame by update_doors() toward `target` at DOOR_SPEED ms⁻¹.
  *   target    0 = closing, 1 = opening. toggle_door flips this.
@@ -410,7 +410,7 @@ typedef struct s_door
 }	t_door;
 
 /**
- * @brief SECTION 4 (include/cub3d_bonus.h): an in-flight enemy projectile.
+ * @brief an in-flight enemy projectile.
  *   x, y      world position (cell coordinates), advanced each frame.
  *   dx, dy    per-frame velocity (unit direction toward the player at spawn
  *             time, scaled by PROJ_SPD).
@@ -430,7 +430,7 @@ typedef struct s_proj
 }	t_proj;
 
 /**
- * @brief SECTION 4 (include/cub3d_bonus.h): a billboard sprite entity.
+ * @brief a billboard sprite entity.
  *   x, y      world position (cell coordinates, cell-centered).
  *   type      enemy / boss / SP_PICKUP+ — picks the animation set.
  *   state     SP_ALIVE (loop walk), SP_DYING (death set once) or
@@ -451,7 +451,7 @@ typedef struct s_sprite
 }	t_sprite;
 
 /**
- * @brief SECTION 4 (include/cub3d_bonus.h): one animated sprite type. Frames
+ * @brief one animated sprite type. Frames
  * are XPM images loaded once at startup; transp[i] holds the per-frame None-
  * pixel color (sampled from frame's (0,0)) so the column blitter can skip it.
  */
@@ -463,7 +463,7 @@ typedef struct s_anim
 }	t_anim;
 
 /**
- * @brief SECTION 4 (include/cub3d_bonus.h): active full-screen cutscene.
+ * @brief active full-screen cutscene.
  * Frames are lazily loaded as one XPM sequence when a cutscene starts, scaled
  * to WIN_W x WIN_H by draw_cutscene(), then freed after the sequence finishes.
  */
@@ -480,7 +480,7 @@ typedef struct s_cutscene
 }	t_cutscene;
 
 /**
- * @brief SECTION 4 (include/cub3d_bonus.h): per-floor enemy art table. For
+ * @brief per-floor enemy art table. For
  * each of the ENEMY_ROLES alive roles it holds four NULL-terminated XPM path
  * lists — walk loop, firing (attack) set, play-once death set and the flying
  * projectile art (empty list = invisible attack). floor_set() picks the table
@@ -496,7 +496,7 @@ typedef struct s_floorset
 }	t_floorset;
 
 /**
- * @brief SECTION 4 (include/cub3d_bonus.h): per-floor texture theme. Holds the
+ * @brief per-floor texture theme. Holds the
  * XPM paths that are otherwise global hardcoded macros (door, floor, ceiling,
  * boss-ceiling and the three accent walls 4/5/6). floor_theme() returns the set
  * for cub->floor so a floor can re-skin its walls/ceiling/doors; floors 1 and 2
@@ -513,7 +513,7 @@ typedef struct s_theme
 }	t_theme;
 
 /**
- * @brief SECTION 4 (include/cub3d_bonus.h): weapon HUD state.
+ * @brief weapon HUD state.
  *   img / transp  WPN_COUNT x WPN_FRAMES HUD images and their per-frame
  *                 None-pixel key (sampled from the XPM (0,0) corner).
  *   current       active weapon index (0 = pistol; pickups set 1..4).
@@ -532,7 +532,7 @@ typedef struct s_weapon
 }	t_weapon;
 
 /**
- * @brief SECTION 4 (include/cub3d_bonus.h): screen-space draw parameters for
+ * @brief screen-space draw parameters for
  * one sprite, produced by sprite_transform() and consumed by the column
  * drawer. depth is camera-space distance (used for the z-buffer test).
  */
@@ -561,7 +561,7 @@ typedef struct s_draw
 	int		tex_x;
 	double	step;
 	double	pos;
-	/* SECTION 3 (include/cub3d.h): per-column brightness multiplier
+	/* per-column brightness multiplier
 	 * (fog * side darkening). Computed once in calc_draw_params, applied to
 	 * each sampled texel in draw_tex_col. */
 	double	shade;
@@ -577,34 +577,33 @@ typedef struct s_cub
 	t_map		map;
 	int			keys[65536];
 	int			parse_fd;
-	/* SECTION 3 (include/cub3d.h):
-	 *   horizon = current vertical center of projection (WIN_H/2 ± bob).
+	/* *   horizon = current vertical center of projection (WIN_H/2 ± bob).
 	 *   bob_t   = head-bob phase, only advanced while moving. */
 	int			horizon;
 	double		bob_t;
-	/* SECTION 4 (include/cub3d_bonus.h): show_minimap toggles the minimap
+	/* show_minimap toggles the minimap
 	 * overlay (KEY_M). Defaults to 1 — set in main() after cub_init(). */
 	int			show_minimap;
-	/* SECTION 4 (include/cub3d_bonus.h): flat door-state grid, one t_door per
+	/* flat door-state grid, one t_door per
 	 * map cell, indexed [y * map.width + x]. NULL until init_doors(). */
 	t_door		*doors;
-	/* SECTION 4 (include/cub3d_bonus.h): billboard sprites.
+	/* billboard sprites.
 	 *   sprites/sprite_count - the entity array parsed from '2' tiles.
 	 *   zbuf - per-column wall depth from the raycast pass; sprites draw a
 	 *          column only where they are nearer than the wall behind it. */
 	t_sprite	*sprites;
 	int			sprite_count;
 	double		zbuf[WIN_W];
-	/* SECTION 4 (include/cub3d_bonus.h): fixed pool of in-flight enemy
+	/* fixed pool of in-flight enemy
 	 * projectiles. Zeroed by cub_init (active = 0); spawn_projectile claims a
 	 * free slot, update_projectiles flies/expires them, draw_projectiles
 	 * billboards the active ones in the sprite pass. */
 	t_proj		projectiles[MAX_PROJ];
-	/* SECTION 4 (include/cub3d_bonus.h): bonus door panel XPM loaded once
+	/* bonus door panel XPM loaded once
 	 * at startup. Sampled by draw_door_stripe for closed/animating doors. */
 	t_img		door_tex;
 	t_img		door_open_tex;
-	/* SECTION 4 (include/cub3d_bonus.h): floor + ceiling tiles. Sampled per
+	/* floor + ceiling tiles. Sampled per
 	 * pixel by the floor-cast pass in draw_bg.c. */
 	t_img		floor_tex;
 	t_img		ceil_tex;
@@ -612,14 +611,14 @@ typedef struct s_cub
 	t_img		wall_alt[WALL_ALT_COUNT];
 	t_img		floor_hud;
 	int			floor_hud_transp;
-	/* SECTION 4 (include/cub3d_bonus.h): "enemies remaining" lives counter.
+	/* "enemies remaining" lives counter.
 	 * lives_hud holds the 24 panel frames (lazy-loaded); lives is the live
 	 * count drawn into the floor-HUD black slot; lives_transp is frame 0's
 	 * transparent key. */
 	t_img		lives_hud[24];
 	int			lives;
 	int			lives_transp;
-	/* SECTION 4 (include/cub3d_bonus.h): end-game state. game_state is GS_*;
+	/* end-game state. game_state is GS_*;
 	 * state_ms is the now_ms() when DEAD/WIN was entered (drives the dead-anim
 	 * frame index + the confirm-input delay). spawn_player/spawn_sprites
 	 * snapshot the floor's start so respawn() restores it. dead_ui/win_ui are
@@ -634,7 +633,7 @@ typedef struct s_cub
 	t_img		gameover_retry;
 	t_img		gameover_quit;
 	int			gameover_sel;
-	/* SECTION 4 (include/cub3d_bonus.h): front-end menu. menu_sel is the main-
+	/* front-end menu. menu_sel is the main-
 	 * menu cursor (0..2); difficulty (DIFF_*) is the chosen level. ui_* are the
 	 * lazily-loaded full-screen menu screens; ui_fade is the clear->black
 	 * Start-Mission blur sequence. */
@@ -652,25 +651,25 @@ typedef struct s_cub
 	long		mission_due_ms;
 	int			mission_pending;
 	t_cutscene	cutscene;
-	/* SECTION 4 (include/cub3d_bonus.h): world reward pickups. sprite_cap is
+	/* world reward pickups. sprite_cap is
 	 * the allocated length of the sprites array (> sprite_count) so spawn_reward
 	 * can append meat/money at runtime. flash_ms/flash_rgb drive the green/gold
 	 * pickup vignette (draw_pickup_flash), mirroring the red damage flash. */
 	int			sprite_cap;
 	long		flash_ms;
 	int			flash_rgb;
-	/* SECTION 4 (include/cub3d_bonus.h): animated sprite types (pod / fluid)
+	/* animated sprite types (pod / fluid)
 	 * cycling every ANIM_MS milliseconds. */
 	t_anim		sprite_anims[SP_TYPES];
-	/* SECTION 4 (include/cub3d_bonus.h): weapon HUD state. Loaded by
+	/* weapon HUD state. Loaded by
 	 * load_weapons() after the world textures; drawn over the 3D view each
 	 * frame by draw_weapon(); freed by free_weapons(). */
 	t_weapon	weapon;
-	/* SECTION 4 (include/cub3d_bonus.h): line returned by get_next_line
+	/* line returned by get_next_line
 	 * currently being dispatched by parse_file. cub_destroy frees it if
 	 * an exit_error fires mid-parse so it never leaks. */
 	char		*pending_line;
-	/* SECTION 4 (include/cub3d_bonus.h): mouse-look state. The motion hook
+	/* mouse-look state. The motion hook
 	 * accumulates raw pointer deltas (no cursor warp) and the per-frame
 	 * loop applies the rotation, then resets mouse_dx. mouse_ready stays 0
 	 * until the first MotionNotify after focus is (re)gained so the very
@@ -679,11 +678,11 @@ typedef struct s_cub
 	int			mouse_last_x;
 	int			mouse_dx;
 	int			mouse_ready;
-	/* SECTION 4 (include/cub3d_bonus.h): wall-clock timestamp (ms) of the
+	/* wall-clock timestamp (ms) of the
 	 * last update_doors() call. The next call uses (now - door_last_ms)
 	 * as delta-time to advance every door's progress at DOOR_SPEED. */
 	long		door_last_ms;
-	/* SECTION 4 (include/cub3d_bonus.h): scene floor (1..) set by the bonus
+	/* scene floor (1..) set by the bonus
 	 * FLOOR directive (default 1). Selects which per-floor enemy/boss art
 	 * fills each role slot in load_anim_sprites(). */
 	int			floor;
@@ -714,7 +713,7 @@ void			apply_movement(t_cub *cub);
 /* ────────────── rotation.c ──────────────── */
 
 void			apply_rotation(t_cub *cub);
-/* SECTION 4 (include/cub3d_bonus.h): exposed for mouse_bonus.c reuse. */
+/* exposed for mouse_bonus.c reuse. */
 void			rotate_vectors(t_player *p, double angle);
 
 /* ────────────── bonus/mouse_bonus.c ──────────────── */
@@ -779,7 +778,7 @@ void			sort_sprites(t_cub *cub);
 /* ────────────── bonus/sprite_draw_bonus.c ──────────────── */
 
 void			draw_sprites(t_cub *cub);
-/* SECTION 4: exposed so projectile_draw_bonus.c reuses the camera transform
+/* exposed so projectile_draw_bonus.c reuses the camera transform
  * to billboard a projectile via a temporary t_sprite. */
 void			sprite_transform(t_cub *cub, t_sprite *sp, t_spr *s);
 
@@ -910,12 +909,12 @@ void			draw_pickup_flash(t_cub *cub);
 
 void			init_ray(t_ray *ray, t_player *p, int x);
 void			init_step_side(t_ray *ray, t_player *p);
-/* SECTION 3 (include/cub3d.h): calc_draw_params gained a horizon param so
+/* calc_draw_params gained a horizon param so
  * the wall stripe re-centers on the bobbing horizon, and it now fills
  * dw->shade so draw_tex_col can shade fog + side darkening in one pass. */
 void			calc_draw_params(t_draw *dw, t_ray *ray, int horizon);
 int				select_texture(t_ray *ray);
-/* SECTION 4: hit fraction [0..1] across the cell face the DDA is about
+/* hit fraction [0..1] across the cell face the DDA is about
  * to enter. Used by the door pass-through test in dda_step. */
 double			ray_hit_fraction(t_ray *ray, t_player *p);
 
@@ -958,14 +957,14 @@ void			draw_floor(t_cub *cub, int x, int start);
 /* ────────────── draw_wall.c ──────────────── */
 
 void			draw_wall_stripe(t_cub *cub, int x, t_ray *ray);
-/* SECTION 4 (include/cub3d_bonus.h): exposed for the door drawer reuse. */
+/* exposed for the door drawer reuse. */
 double			calc_wall_x(t_ray *ray, t_player *p);
 
 /* ────────────── render.c ──────────────── */
 
 void			put_px(t_img *img, int x, int y, unsigned int color);
 int				loop_hook(void *param);
-/* SECTION 3 (include/cub3d.h): shared render helpers.
+/* shared render helpers.
  *   shade_rgb     - per-channel RGB multiply with 0..1 saturation clamp.
  *   draw_crosshair- 9-pixel HUD cross drawn after the raycast pass.
  *   update_horizon- per-frame head-bob update from held WASD keys. */

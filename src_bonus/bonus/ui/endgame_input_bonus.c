@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/ui/endgame_input_bonus.c): game-over screen input.
+/* game-over screen input.
  * Split out of endgame_state_bonus.c to keep both files Norm-compliant. The
  * final game-over screen offers a Retry/Quit selection: W/S/Up/Down toggle it,
  * Enter confirms (restart from floor 1 or quit). */

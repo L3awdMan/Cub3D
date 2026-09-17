@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/enemy_bonus.c): shooting an enemy. shoot_hitscan()
+/* shooting an enemy. shoot_hitscan()
  * is fired once per shot by update_weapon(): it projects every alive enemy into
  * camera space (same inverse-camera matrix as the sprite pass), keeps the ones
  * whose centre column falls inside the SHOT_AIM band, are within SHOT_RANGE,

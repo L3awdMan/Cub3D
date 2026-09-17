@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/projectile_bonus.c): in-flight enemy projectiles.
+/* in-flight enemy projectiles.
  * When an enemy fires (enemy_ai_bonus.c) it calls spawn_projectile, which aims
  * a pooled shot at the player. update_projectiles() flies every active shot
  * PROJ_SPD cells per frame, expiring it on a wall/closed-door hit and removing

@@ -12,7 +12,7 @@
 
 #include "cub3d_bonus.h"
 
-/* SECTION 4 (cutscene_path_bonus.c): builds the CUT_DIR-relative XPM path for
+/* builds the CUT_DIR-relative XPM path for
  * one cutscene frame. cutscene_prefix() maps the cutscene id to its frame-name
  * stem and pad3() zero-pads the frame index to three digits. */
 

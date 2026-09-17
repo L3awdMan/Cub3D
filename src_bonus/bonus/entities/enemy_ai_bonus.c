@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/enemy_ai_bonus.c): stationary enemy attack AI.
+/* stationary enemy attack AI.
  * update_enemies() runs once per frame from loop_hook(). Any alive enemy whose
  * clear line of sight reaches the player within ATTACK_RANGE fires on a
  * cooldown: it flips to SP_ATTACKING (its firing frames play for FIRE_MS) and

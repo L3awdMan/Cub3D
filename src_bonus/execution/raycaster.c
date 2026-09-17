@@ -35,7 +35,7 @@ static void	advance_ray(t_ray *ray)
 /**
  * @brief Steps the DDA one cell and returns 1 if the ray should stop.
  *
- * SECTION 4 (src_bonus/execution/raycaster.c): WALL_CHARS are solid walls
+ * WALL_CHARS are solid walls
  * (door flag cleared); a 'D' tile is queried with the per-ray hit fraction. The
  * door slides retracts from its center, so a ray that hits the cell within
  * the retracted central band [0.5 - p/2, 0.5 + p/2] passes through and the

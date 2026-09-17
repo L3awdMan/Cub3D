@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/weapon_blit_bonus.c): low-level helpers for the
+/* low-level helpers for the
  * weapon HUD pass (weapon_draw_bonus.c). frame_bbox() trims a frame to its
  * opaque content so every weapon scales to the same on-screen width regardless
  * of padding; blit_scaled() nearest-neighbour blits that sub-rect, skipping

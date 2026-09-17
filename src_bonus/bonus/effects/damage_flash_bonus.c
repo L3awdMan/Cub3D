@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/damage_flash_bonus.c): Call-of-Duty style red
+/* Call-of-Duty style red
  * hit-flash. After the frame is fully drawn, draw_damage_flash() tints the
  * image buffer red, strongest at the screen edges (a vignette) and clear in the
  * center, with an alpha that fades from HURT_MAX_A to 0 over HURT_FADE_MS after

@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/anim_sprite_bonus.c): loads every animated sprite
+/* loads every animated sprite
  * type into cub->sprite_anims and frees them on shutdown. The enemy/boss art
  * is per-floor: floor_set(cub->floor) names the walk, firing and death XPM
  * sequences for each of the ENEMY_ROLES roles, which fill slots role,
@@ -21,7 +21,7 @@
 #include "cub3d_bonus.h"
 #include "mlx.h"
 
-/* SECTION 4: weapon pickups. g_ammo[i] is the floor sprite for PICKUP_CHARS[i]
+/* weapon pickups. g_ammo[i] is the floor sprite for PICKUP_CHARS[i]
  * (weapon i + 1), loaded as a single-frame type at SP_PICKUP + i. */
 static const char *const	g_ammo[] = {
 	"./textures/blake_stone_xpm/sprites/guns/gun_2.xpm",
@@ -31,7 +31,7 @@ static const char *const	g_ammo[] = {
 	NULL,
 };
 
-/* SECTION 4: world reward pickups. g_rewards[0] loads at SP_MEAT, g_rewards[1]
+/* world reward pickups. g_rewards[0] loads at SP_MEAT, g_rewards[1]
  * at SP_MONEY (single-frame grounded sprites dropped by enemy/boss death). */
 static const char *const	g_rewards[] = {
 	"./textures/blake_stone_xpm/sprites/health_money/health_meat.xpm",

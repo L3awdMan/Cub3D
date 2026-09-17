@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/floor_anims_bonus.c): per-floor enemy art tables.
+/* per-floor enemy art tables.
  * Map tile chars name floor-agnostic roles (SP_POD/FLUID/SCIENTIST/SPECIAL/
  * POD_ALIEN); the active floor decides which Blake Stone sprite set fills each
  * slot. floor_set() returns the table for cub->floor (default = floor 1) and

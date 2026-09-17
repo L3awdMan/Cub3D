@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/minimap_bonus.c): bonus feature #2 — minimap.
+/* bonus feature #2 — minimap.
  * A player-centered top-down patch blitted over the 3D view each frame via
  * put_px (no extra MLX calls). Shows a MM_RADIUS-cell window of the grid,
  * the player as a dot, the look direction in red, and the FOV edges in blue.

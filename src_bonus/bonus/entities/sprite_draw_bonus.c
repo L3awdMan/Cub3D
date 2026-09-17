@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/sprite_draw_bonus.c): sprite pass.
+/* sprite pass.
  * Each frame: pick the current animation frame for every sprite from the
  * wall-clock (now_ms), sort sprites far-to-near, project each into camera
  * space, and hand the visible ones to the column blitter. Runs after the

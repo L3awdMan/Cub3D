@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/texture_free_bonus.c): texture teardown. Split
+/* texture teardown. Split
  * out of texture.c so the loader file stays within the function-per-file
  * limit. free_world_tex() drops the four wall textures and the bonus wall
  * alternates; free_textures() also drops the door, floor and ceiling images. */

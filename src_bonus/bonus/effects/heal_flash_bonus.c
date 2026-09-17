@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/heal_flash_bonus.c): pickup flash, the positive
+/* pickup flash, the positive
  * twin of the red damage flash. After the frame is drawn, draw_pickup_flash()
  * softly adds cub->flash_rgb (green for meat, gold for money) only inside a
  * fixed screen-edge band. It fades from FLASH_MAX_A to 0 over FLASH_FADE_MS

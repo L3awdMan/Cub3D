@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/menu_input_bonus.c): front-end input dispatch.
+/* front-end input dispatch.
  * menu_input() is called on each edge-detected key press while a menu state is
  * active: Space/Enter advance, Up/Down (or W/S) move a cursor, Backspace steps
  * back. ESC (always-quit) stays handled in key_press. Difficulty damage scaling

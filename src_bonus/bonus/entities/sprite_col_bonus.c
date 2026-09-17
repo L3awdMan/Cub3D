@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/sprite_col_bonus.c): sprite column blitter.
+/* sprite column blitter.
  * Draws one transformed sprite column-by-column from its current animation
  * frame (s->tex). Skips texels equal to the frame's recorded transparent
  * color (s->transp, sampled from the XPM's (0, 0) corner — the None fill).

@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/hud_bar_bonus.c): HUD health bars. Drawn after
+/* HUD health bars. Drawn after
  * the weapon and before the crosshair. The player bar (bottom-left) always
  * shows and drains as enemies chip cub->player.hp (clamped at 0, no death).
  * The boss bar (top-center, just below the floor HUD) appears only while a live

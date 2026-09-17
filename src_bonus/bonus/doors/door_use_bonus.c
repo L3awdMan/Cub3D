@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/door_use_bonus.c): KEY_E door interaction and
+/* KEY_E door interaction and
  * the per-ray pass-through test consumed by the DDA. toggle_door flips the
  * faced door's target (open ↔ closed); the slide itself runs in
  * update_doors(). A close attempt while the player stands on the door

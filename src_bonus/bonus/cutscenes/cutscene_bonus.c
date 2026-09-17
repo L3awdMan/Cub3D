@@ -13,7 +13,7 @@
 #include "cub3d_bonus.h"
 #include "mlx.h"
 
-/* SECTION 4 (src_bonus/bonus/cutscene_bonus.c): full-screen cutscene playback.
+/* full-screen cutscene playback.
  * cutscene_meta() sets the frame count and per-frame delay for a cutscene id,
  * load_cutscene() lazily loads its CUT_DIR XPM sequence, start_cutscene() enters
  * GS_CUTSCENE and free_cutscene() frees the frames. Path building lives in

@@ -74,7 +74,7 @@ void	init_step_side(t_ray *ray, t_player *p)
  * @details perp_dist removes fisheye by using a perpendicular distance
  * (side_dist - delta_dist for the hit axis).
  *
- * SECTION 3 (src/execution/ray_utils.c) changes:
+ * Changes vs the mandatory version:
  *  - horizon (new param) replaces hard-coded WIN_H/2 so the stripe follows
  *    the head-bob computed by update_horizon() each frame.
  *  - dw->shade filled here: fog factor capped at 1.0 (close walls stay
@@ -125,7 +125,7 @@ int	select_texture(t_ray *ray)
  * the entry-side distance directly so the door pass-through test in
  * dda_step can run BEFORE perp_dist is finalized.
  *
- * SECTION 4 (src_bonus/execution/ray_utils.c): door slide animation —
+ * door slide animation —
  * if the ray's hit fraction falls inside the door's retracted central
  * band the DDA keeps stepping (reveals geometry behind).
  */

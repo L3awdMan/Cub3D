@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/endgame_bonus.c): end-game UI — load side.
+/* end-game UI — load side.
  * capture_spawn() snapshots the floor's start (player + initial sprites) so
  * respawn() can restore it. load_endgame_ui() lazily loads the dead frames,
  * the win frame and the terminal retry/quit screens. State + draw live in

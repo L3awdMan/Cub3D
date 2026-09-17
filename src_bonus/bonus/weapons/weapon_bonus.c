@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/weapon_bonus.c): weapon asset I/O and gameplay
+/* weapon asset I/O and gameplay
  * hooks. Loads the five-frame player-view weapon XPM animations at startup
  * (transparency sampled from each (0, 0) corner, same convention as sprites).
  * weapon_pickup() swaps the active weapon when the player steps on a

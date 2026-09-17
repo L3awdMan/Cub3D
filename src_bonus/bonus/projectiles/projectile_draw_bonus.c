@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/projectile_draw_bonus.c): draws in-flight enemy
+/* draws in-flight enemy
  * projectiles in the sprite pass. Each active shot is wrapped in a temporary
  * t_sprite (its per-role proj art type) so it reuses the camera transform
  * (sprite_transform) and the z-buffered column blitter (draw_sprite_cols) —

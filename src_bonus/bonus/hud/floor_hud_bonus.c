@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/floor_hud_bonus.c): per-floor HUD overlay. Each
+/* per-floor HUD overlay. Each
  * FLOOR directive picks one top-screen cropped HUD XPM. It draws before the
  * weapon and health bars, so the new floor panel becomes the dashboard base
  * while existing gameplay HUD elements stay readable on top. */

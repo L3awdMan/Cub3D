@@ -38,7 +38,7 @@ static int	handle_edge_key(t_cub *cub, int key)
  * @brief Handles KeyPress: mark key as held in the keys[] state array
  * @return 0 as per MLX hook convention
  *
- * SECTION 4 (src_bonus/events/hooks.c): KEY_M toggles the minimap and KEY_E
+ * KEY_M toggles the minimap and KEY_E
  * toggles the faced door. The edge check (key not already held) makes one
  * tap = one action even though X11 autorepeat re-fires KeyPress on hold.
  */
@@ -92,7 +92,7 @@ int	close_hook(void *param)
  * @brief Registers all event hooks with MLX
  * @note 2 = KeyPress, 3 = KeyRelease, 17 = DestroyNotify
  *
- * SECTION 4 (src_bonus/events/hooks.c): also wires the bonus mouse-look hook
+ * also wires the bonus mouse-look hook
  * via register_mouse() (event 6, MotionNotify) and the left-click weapon-fire
  * hook (event 4, ButtonPress).
  */

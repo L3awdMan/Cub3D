@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/reward_popup_bonus.c): world reward pickups. A
+/* world reward pickups. A
  * killed enemy drops a meat (SP_MEAT) and a vanished boss drops a money bag
  * (SP_MONEY) as grounded billboard sprites appended to cub->sprites (guarded by
  * sprite_cap). collect_rewards() removes one on walk-over: meat restores hp and

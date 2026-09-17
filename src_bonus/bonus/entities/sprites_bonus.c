@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/sprites_bonus.c): map-driven sprite spawn.
+/* map-driven sprite spawn.
  * Map tiles '2' and '3' mark the floor-1 enemy and boss respectively. Each
  * tile becomes a t_sprite entry (cell-centered position + type index) and is
  * rewritten to '0' so the raycaster and movement code only ever see plain

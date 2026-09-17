@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/weapon_draw_bonus.c): weapon HUD pass. Runs
+/* weapon HUD pass. Runs
  * after the world layers (walls/sprites/minimap) and before the crosshair so
  * the reticle stays on top. Each weapon has five full-frame HUD XPMs. Frame 0
  * is idle; firing walks through the sequence so the muzzle-flash frame appears.

@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/mouse_bonus.c): bonus feature #1 — mouse look.
+/* bonus feature #1 — mouse look.
  * MotionNotify (X event 6) accumulates the raw pointer delta in cub->mouse_dx
  * — no cursor warp, no cursor hide — so the X11 cursor stays visible and the
  * window's close button stays clickable. The per-frame loop drains mouse_dx

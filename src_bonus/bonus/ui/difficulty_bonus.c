@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/ui/difficulty_bonus.c): difficulty damage scaling.
+/* difficulty damage scaling.
  * Split out of menu_input_bonus.c to keep that file Norm-compliant. player_dmg()
  * scales enemy damage by the chosen difficulty so harder levels drain hp faster.
  * Used at both player-damage sites (enemy melee + projectile impact). */

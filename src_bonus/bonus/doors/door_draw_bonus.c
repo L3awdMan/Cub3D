@@ -10,7 +10,7 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-/* SECTION 4 (src_bonus/bonus/door_draw_bonus.c): door column renderer.
+/* door column renderer.
  * Closed doors render as a normal wall stripe with cub->door_tex. While
  * a door is animating, the ray only reaches this function on columns
  * where it hit the still-unretracted panel (the DDA pass-through test
